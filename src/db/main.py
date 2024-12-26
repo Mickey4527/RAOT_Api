@@ -1,25 +1,44 @@
+from __future__ import annotations
+from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlmodel import text, SQLModel
-from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
+
+from loguru import logger
+
 from src.config import settings
 
-async_engine = create_async_engine(url=settings.POSTGRES_URL, echo=True)
+def get_async_engine() -> AsyncEngine:
+    
+    """
+        Return async database engine
 
+    """
+
+    try:
+        async_engine: AsyncEngine = create_async_engine(
+            url=str(settings.SQLALCHEMY_DATABASE_URI),
+            echo=True,
+            future=True
+        )
+    except SQLAlchemyError as e:
+        logger.warning("Unable to establish db engine, database might not exist yet")
+        logger.warning(e)
+
+    return async_engine
 
 async def init_db():
-    """Create the database tables"""
-    async with async_engine.begin() as conn:
-        from src.models.user import UserAccount
+    """
+        Create table in metadata if they don't exist yet.
+    
+        This uses a sync connection because the 'create_all' doesn't
+        feature async yet.
 
-        await conn.run_sync(SQLModel.metadata.create_all)
+    """
+    
+    async_engine = get_async_engine()
+    
+    async with async_engine.begin() as async_conn:
+        # await async_conn.run_sync(Base.metadata.create_all)
+        logger.success("Initializing database was successfull.")
 
-
-async def get_session() -> AsyncSession:
-    """Dependency to provide the session object"""
-    async_session = sessionmaker(
-        bind=async_engine, class_=AsyncSession, expire_on_commit=False
-    )
-
-    async with async_session() as session:
-        yield session
+    await async_engine.dispose()

@@ -1,5 +1,10 @@
+# Environments
 .env
+
+# Byte-compiled / optimized / DLL files
 *.pyc
 __pycache__/
+
+# Environments python
 .venv/
 env/
