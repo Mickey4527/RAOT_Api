@@ -1,104 +1,85 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import or_
 from sqlalchemy.sql import select
 from sqlalchemy.orm import Session
 
-from src.models import Provinces
-from src.schemas import Result, ProvinceBaseSchema, ProvinceSchema
+from src.models import Provinces, Districts
+from src.schemas import BaseCitySchema, CityWithIdSchema
 
 class ProvinceService:
+
     @staticmethod
     async def get_provinces(session: Session):
         stmp = select(Provinces)
         result = await session.execute(stmp)
         provinces = result.scalars().all()
 
-        serialized_provinces = [ProvinceSchema.model_validate(province) for province in provinces]
-        response = Result.model_validate({
-            "success": True,
-            "message": "Provinces retrieved successfully",
-            "data": serialized_provinces
-        })
+        return provinces
 
-        return response
-        
+       
     @staticmethod
     async def get_province(session: Session, province_id: str):
         stmp = select(Provinces).where(Provinces.id == province_id)
         result = await session.execute(stmp)
         province = result.scalars().first()
 
-        if not province:
-            return Result.model_validate({
-                "success": False,
-                "error_code": 404,
-                "message": "Province not found"
-            })
-            
-        return Result.model_validate({
-            "success": True,
-            "message": "Province retrieved successfully",
-            "data": ProvinceSchema.model_validate(province)
-        })
+        return province
     
     @staticmethod
-    async def create_province(session: Session, province: ProvinceBaseSchema):
+    async def get_province_by_name(session: Session, name_th: str, name_en: str):
+        stmp = select(Provinces).filter(or_(Provinces.name_th == name_th, Provinces.name_en == name_en))
+        result = await session.execute(stmp)
+        province = result.scalars().first()
+
+        return province
+
+    
+    @staticmethod
+    async def create_province(session: Session, province: BaseCitySchema):
+
         new_province = Provinces(
             name_th=province.name_th,
             name_en=province.name_en
         )
 
-        async with session.begin():
-            session.add(new_province)
-            await session.commit()
+        session.add(new_province)
+        await session.commit()
+        session.refresh(new_province)
 
-            return Result.model_validate({
-                "success": True,
-                "message": "Province created successfully",
-                "data": ProvinceSchema.model_validate(new_province)
-            })
+        return CityWithIdSchema.model_validate(new_province)
             
     @staticmethod
-    async def update_province(session: Session, province_id: str, province: ProvinceBaseSchema):
-        async with session.begin():
-            stmp = select(Provinces).where(Provinces.id == province_id)
-            result = await session.execute(stmp)
-            existing_province = result.scalars().first()
+    async def update_province(session: Session, province_id: str, province: BaseCitySchema):
+        stmp = select(Provinces).where(Provinces.id == province_id)
+        result = await session.execute(stmp)
+        existing_province = result.scalars().first()
 
-            if not existing_province:
-                return Result.model_validate({
-                    "success": False,
-                    "error_code": 404,
-                    "message": "Province not found"
-                })
+        if not existing_province:
+            return False
 
-            existing_province.name_th = province.name_th
-            existing_province.name_en = province.name_en
-            await session.commit()
+        existing_province.name_th = province.name_th
+        existing_province.name_en = province.name_en
+        await session.commit()
 
-            return Result.model_validate({
-                "success": True,
-                "message": "Province updated successfully",
-                "data": ProvinceSchema.model_validate(existing_province)
-            })
+        return True
 
     @staticmethod
     async def delete_province(session: Session, province_id: str):
-        async with session.begin():
-            stmp = select(Provinces).where(Provinces.id == province_id)
-            result = await session.execute(stmp)
-            existing_province = result.scalars().first()
+        stmp = select(Provinces).where(Provinces.id == province_id)
+        result = await session.execute(stmp)
+        existing_province = result.scalars().first()
 
-            if not existing_province:
-                return Result.model_validate({
-                    "success": False,
-                    "error_code": 404,
-                    "message": "Province not found"
-                })
+        if not existing_province:
+            return False
 
-            session.delete(existing_province)
-            await session.commit()
+        session.delete(existing_province)
+        await session.commit()
 
-            return Result.model_validate({
-                "success": True,
-                "message": "Province deleted successfully"
-            })
+        return True
+    
+    @staticmethod
+    async def get_districts_by_province(session: Session, province_id: str):
+        stmp = select(Districts).where(Districts.province_id == province_id)
+        result = await session.execute(stmp)
+        districts = result.scalars().all()
+
+        return districts

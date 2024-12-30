@@ -21,7 +21,7 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 from src.config import settings
-from src.models import UserAccount, Provinces, Districts, SubDistricts, SQLModel
+from src.models import SQLModel
 
 target_metadata = SQLModel.metadata
 

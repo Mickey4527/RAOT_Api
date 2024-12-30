@@ -1,8 +1,15 @@
 from .base import BaseSchema
 
 class UserSchema(BaseSchema):
-    pass
-
+    username: str = ""
+    
 class UserLoginSchema(UserSchema):
-    email: str
     password: str
+
+class UserDetailSchema(UserSchema):
+    email: str
+    telephone: str
+    user_type: str
+
+class UserCreateSchema(UserLoginSchema, UserDetailSchema):
+    pass

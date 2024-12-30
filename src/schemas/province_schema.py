@@ -3,21 +3,26 @@ from uuid import UUID
 from .base import BaseSchema
 
 
-class ProvinceBaseSchema(BaseSchema):
+from uuid import UUID
+from .base import BaseSchema
+
+
+class BaseCitySchema(BaseSchema):
     name_th: str
     name_en: str
 
 
-class ProvinceSchema(ProvinceBaseSchema):
+class CityWithIdSchema(BaseCitySchema):
     id: UUID
 
-class DistrictSchema(ProvinceBaseSchema):
-    id: UUID
+
+class ProvinceSchema(CityWithIdSchema):
+    geography_id: int
+
+
+class DistrictCreateSchema(BaseCitySchema):
     province_id: UUID
 
-class SubDistrictSchema(ProvinceBaseSchema):
-    id: UUID
-    district_id: UUID
-    
 
-
+class DistrictSchema(CityWithIdSchema):
+    pass
