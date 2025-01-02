@@ -8,3 +8,4 @@ from .user_role import UserRole
 from .permission import Permission
 from .role_permission import RolePermission
 from .geography import Geography
+from .resource import Resource

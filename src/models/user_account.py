@@ -1,6 +1,6 @@
 import hashlib
 import uuid
-from sqlalchemy import Boolean, String
+from sqlalchemy import Boolean, String, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -20,7 +20,7 @@ class UserAccount(SQLModel):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     telephone: Mapped[str] = mapped_column(String(10), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    user_type: Mapped[str] = mapped_column(String(255), nullable=False)
+    user_role_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("user_role.id"), nullable=False)
 
     profile: Mapped["UserProfile"] = relationship("UserProfile", back_populates="user_account", uselist=False)
-
+    user_role: Mapped["UserRole"] = relationship("UserRole", back_populates="user_account")

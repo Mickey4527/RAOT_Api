@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 
 from src.helpers.validate import is_valid_uuid
 from src.routers.deps import SessionDep, get_current_user
-from src.schemas import Result, CityWithIdSchema, BaseCitySchema, ProvinceSchema
+from src.schemas import Result, BaseCitySchema, DistrictOfProvinceSchema, ProvinceSchema
 from src.services import ProvinceService
 
 router = APIRouter(prefix="/province", tags=["province"], dependencies=[Depends(get_current_user)])
@@ -67,7 +67,7 @@ async def get_province_by_id(session: SessionDep, province_id: str):
         })
 
 @router.post("/", response_model=Result)
-async def create_province(session: SessionDep, data_create: BaseCitySchema):
+async def create_province(session: SessionDep, data_create: ProvinceSchema):
     try:
         province = await ProvinceService.get_province_by_name(session, data_create.name_th, data_create.name_en)
     
@@ -95,7 +95,7 @@ async def create_province(session: SessionDep, data_create: BaseCitySchema):
 
 
 @router.put("/{province_id}", response_model=Result)
-async def update_province(session: SessionDep, province_id: str, province: BaseCitySchema):
+async def update_province(session: SessionDep, province_id: str, province: ProvinceSchema):
     try:
         if is_valid_uuid(province_id) == False:
             return Result.model_validate({
@@ -147,25 +147,39 @@ async def delete_province(session: SessionDep, province_id: str):
             "message": str(e)
         })
 
+from fastapi import HTTPException
+
 @router.get("/{province_id}/list/district", response_model=Result)
-async def get_province_by_district(session: SessionDep, province_id: str):
+async def get_province_by_district(session: SessionDep, province_id: int):
     try:
-        result = await ProvinceService.get_districts_by_province(session, province_id)
+        # Fetch districts by province_id
+        districts = await ProvinceService.get_districts_by_province(session, province_id)
+
+        if not districts:
+            raise HTTPException(
+                status_code=404, detail="No districts found for the given province."
+            )
         
-        if not result:
-            return Result.model_validate({
-                "success": False,
-                "error_code": 404,
-                "message": "Province not found"
-            })
+        # Construct the response using DistrictOfProvinceSchema
+        district_data = DistrictOfProvinceSchema(
+            name_th="Province Name (example)",
+            name_en="Province Name (example)",
+            districts=[BaseCitySchema.model_validate(district) for district in districts],
+        )
         
         return Result.model_validate({
             "success": True,
-            "message": "Province retrieved successfully",
-            "data": [CityWithIdSchema.model_validate(district) for district in result]
+            "message": "Districts retrieved successfully",
+            "data": district_data
         })
 
-    
+    except HTTPException as http_exc:
+        return Result.model_validate({
+            "success": False,
+            "error_code": http_exc.status_code,
+            "message": http_exc.detail
+        })
+
     except Exception as e:
         return Result.model_validate({
             "success": False,

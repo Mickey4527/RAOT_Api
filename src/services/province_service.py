@@ -3,7 +3,7 @@ from sqlalchemy.sql import select
 from sqlalchemy.orm import Session
 
 from src.models import Provinces, Districts
-from src.schemas import BaseCitySchema, CityWithIdSchema
+from src.schemas import BaseCitySchema, ProvinceSchema
 
 class ProvinceService:
 
@@ -34,21 +34,23 @@ class ProvinceService:
 
     
     @staticmethod
-    async def create_province(session: Session, province: BaseCitySchema):
+    async def create_province(session: Session, province: ProvinceSchema):
 
         new_province = Provinces(
             name_th=province.name_th,
-            name_en=province.name_en
+            name_en=province.name_en,
+            code=province.code,
+            geography_id=province.geography_id
         )
 
         session.add(new_province)
         await session.commit()
         session.refresh(new_province)
 
-        return CityWithIdSchema.model_validate(new_province)
+        return ProvinceSchema.model_validate(new_province)
             
     @staticmethod
-    async def update_province(session: Session, province_id: str, province: BaseCitySchema):
+    async def update_province(session: Session, province_id: str, province: ProvinceSchema):
         stmp = select(Provinces).where(Provinces.id == province_id)
         result = await session.execute(stmp)
         existing_province = result.scalars().first()
@@ -58,6 +60,9 @@ class ProvinceService:
 
         existing_province.name_th = province.name_th
         existing_province.name_en = province.name_en
+        existing_province.code = province.code
+        existing_province.geography_id = province.geography_id
+
         await session.commit()
 
         return True
@@ -77,7 +82,7 @@ class ProvinceService:
         return True
     
     @staticmethod
-    async def get_districts_by_province(session: Session, province_id: str):
+    async def get_districts_by_province(session: Session, province_id: int):
         stmp = select(Districts).where(Districts.province_id == province_id)
         result = await session.execute(stmp)
         districts = result.scalars().all()

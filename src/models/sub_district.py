@@ -7,6 +7,7 @@ class SubDistricts(SQLModel):
     __tablename__ = "sub_district_geography"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(String(5), nullable=False)
     name_th: Mapped[str] = mapped_column(String(255), nullable=False)
     name_en: Mapped[str] = mapped_column(String(255), nullable=False)
     district_id: Mapped[int] = mapped_column(Integer, ForeignKey("district_geography.id"), nullable=False)

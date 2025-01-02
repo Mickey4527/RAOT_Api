@@ -1,6 +1,6 @@
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from src.schemas import UserSchema, UserLoginSchema, UserCreateSchema, UserDetailSchema
+from src.schemas import UserLoginSchema, UserCreateSchema, UserDetailSchema
 from src.models import UserAccount
 from sqlalchemy.sql import select
 from src.helpers.password_service import get_password_hash, verify_password
@@ -31,13 +31,13 @@ class UserService:
         return user
     
     @staticmethod
-    async def create_user(session: Session, user: UserCreateSchema):
+    async def create_user(session: Session, user_create: UserCreateSchema):
 
         new_user = UserAccount(
-            email=user.email,
-            password_hash=get_password_hash(user.password),
-            telephone=user.telephone,
-            user_type=user.user_type
+            email=user_create.email,
+            password_hash=get_password_hash(user_create.password),
+            telephone=user_create.telephone,
+            user_type=user_create.user_type
         )
 
         session.add(new_user)
