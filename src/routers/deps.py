@@ -60,3 +60,21 @@ async def get_current_user(session:SessionDep ,token: TokenDep):
         
     return user
 
+
+async def get_current_active_user(current_user: UserService = Depends(get_current_user)):
+    if not current_user.is_active:
+        raise raise_http_exception(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            message="Inactive user"
+        )
+    return current_user
+
+async def get_current_active_superuser(current_user: UserService = Depends(get_current_user)):
+    if not current_user.is_superuser:
+        raise raise_http_exception(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            message="The user doesn't have enough privileges"
+        )
+    return current_user
+
+

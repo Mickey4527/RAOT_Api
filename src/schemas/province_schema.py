@@ -1,28 +1,18 @@
-
-from uuid import UUID
 from .base import BaseSchema
 
-
-from uuid import UUID
-from .base import BaseSchema
-
-
-class BaseCitySchema(BaseSchema):
+class BaseGeographySchema(BaseSchema):
+    id: int = 0
     name_th: str
     name_en: str
 
+class BaseCitySchema(BaseGeographySchema):
+    code: str
 
-class CityWithIdSchema(BaseCitySchema):
-    id: UUID
-
-
-class ProvinceSchema(CityWithIdSchema):
+class ProvinceSchema(BaseCitySchema):
     geography_id: int
 
+class DistrictSchema(BaseCitySchema):
+    province_id: int
 
-class DistrictCreateSchema(BaseCitySchema):
-    province_id: UUID
-
-
-class DistrictSchema(CityWithIdSchema):
-    pass
+class DistrictOfProvinceSchema(BaseCitySchema):
+    districts: list[DistrictSchema]

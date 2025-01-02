@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 
 from src.helpers.error import raise_http_exception
 from src.routers.deps import SessionDep, get_current_user
-from src.schemas import Result, DistrictCreateSchema, DistrictSchema
+from src.schemas import Result, DistrictSchema
 from src.services import DistrictService, ProvinceService
 
 router = APIRouter(prefix="/district", tags=["district"], dependencies=[Depends(get_current_user)])
@@ -32,7 +32,7 @@ async def get_district_all(session: SessionDep):
         })
 
 @router.post("/")
-async def create_district(session: SessionDep, data_create: DistrictCreateSchema):
+async def create_district(session: SessionDep, data_create: DistrictSchema):
     try:
 
         province = await ProvinceService.get_province(session, data_create.province_id)

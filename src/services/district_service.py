@@ -2,7 +2,7 @@ from sqlalchemy.sql import select
 from sqlalchemy.orm import Session
 
 from src.models import Districts
-from src.schemas import DistrictCreateSchema, DistrictSchema
+from src.schemas import DistrictSchema
 
 class DistrictService:
 
@@ -32,12 +32,13 @@ class DistrictService:
         return districts
     
     @staticmethod
-    async def create_district(session: Session, district: DistrictCreateSchema):
+    async def create_district(session: Session, district: DistrictSchema):
         
         new_district = Districts(
             name_th=district.name_th,
             name_en=district.name_en,
-            province_id=district.province_id
+            province_id=district.province_id,
+            code=district.code
         )
 
         session.add(new_district)

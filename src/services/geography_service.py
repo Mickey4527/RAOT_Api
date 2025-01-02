@@ -2,10 +2,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 
 from src.models import Geography
+from src.schemas import BaseGeographySchema
 
 class GeographyService:
+
     @staticmethod
-    def get_geography(session: Session):
+    def get_geographys(session: Session):
         stmp = select(Geography)
         result = session.execute(stmp)
         geographies = result.scalars().all()
@@ -21,20 +23,20 @@ class GeographyService:
         return geography
     
     @staticmethod
-    def create_geography(session: Session, geography):
+    async def create_geography(session: Session, geography: BaseGeographySchema):
         new_geography = Geography(
             name_th=geography.name_th,
             name_en=geography.name_en
         )
 
         session.add(new_geography)
-        session.commit()
+        await session.commit()
         session.refresh(new_geography)
 
         return new_geography
     
     @staticmethod
-    def update_geography(session: Session, geography_id: str, geography):
+    def update_geography(session: Session, geography_id: str, geography: BaseGeographySchema):
         stmp = select(Geography).where(Geography.id == geography_id)
         result = session.execute(stmp)
         current_geography = result.scalars().first()

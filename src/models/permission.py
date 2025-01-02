@@ -9,8 +9,6 @@ class Permission(SQLModel):
     __tablename__ = "permission"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    permission_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    permission_description: Mapped[str] = mapped_column(String(255), nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    
+    permission_type: Mapped[str] = mapped_column(String(255), nullable=False)
+
     role_permission: Mapped["RolePermission"] = relationship("RolePermission", back_populates="permission") # type: ignore
