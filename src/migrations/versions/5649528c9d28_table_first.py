@@ -1,8 +1,8 @@
 """table first
 
-Revision ID: 2f1faeb4415c
+Revision ID: 5649528c9d28
 Revises: 
-Create Date: 2024-12-31 06:51:10.182658
+Create Date: 2025-01-03 04:31:17.969305
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '2f1faeb4415c'
+revision: str = '5649528c9d28'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -23,7 +23,7 @@ def upgrade() -> None:
     op.create_table('geography',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('name_th', sa.String(length=255), nullable=False),
-    sa.Column('name_en', sa.String(length=255), nullable=False),
+    sa.Column('name_en', sa.String(length=255), nullable=True),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id'),
@@ -57,9 +57,9 @@ def upgrade() -> None:
     )
     op.create_table('province_geography',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('code', sa.String(length=5), nullable=False),
+    sa.Column('code', sa.Integer(), nullable=False),
     sa.Column('name_th', sa.String(length=255), nullable=False),
-    sa.Column('name_en', sa.String(length=255), nullable=False),
+    sa.Column('name_en', sa.String(length=255), nullable=True),
     sa.Column('geography_id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
@@ -98,9 +98,9 @@ def upgrade() -> None:
     op.create_index(op.f('ix_user_account_email'), 'user_account', ['email'], unique=True)
     op.create_table('district_geography',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('code', sa.String(length=5), nullable=False),
+    sa.Column('code', sa.Integer(), nullable=False),
     sa.Column('name_th', sa.String(length=255), nullable=False),
-    sa.Column('name_en', sa.String(length=255), nullable=False),
+    sa.Column('name_en', sa.String(length=255), nullable=True),
     sa.Column('province_id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
@@ -119,9 +119,9 @@ def upgrade() -> None:
     )
     op.create_table('sub_district_geography',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('code', sa.String(length=5), nullable=False),
+    sa.Column('code', sa.Integer(), nullable=False),
     sa.Column('name_th', sa.String(length=255), nullable=False),
-    sa.Column('name_en', sa.String(length=255), nullable=False),
+    sa.Column('name_en', sa.String(length=255), nullable=True),
     sa.Column('district_id', sa.Integer(), nullable=False),
     sa.Column('province_id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),

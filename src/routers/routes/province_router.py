@@ -1,23 +1,25 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from src.helpers.validate import is_valid_uuid
 from src.routers.deps import SessionDep, get_current_user
-from src.schemas import Result, BaseCitySchema, DistrictOfProvinceSchema, ProvinceSchema
+from src.schemas import Result, BaseCitySchema, DistrictOfProvinceSchema, ProvinceSchema, QuerySchema
 from src.services import ProvinceService
 
 router = APIRouter(prefix="/province", tags=["province"], dependencies=[Depends(get_current_user)])
 
 @router.get("/", response_model=Result)
-async def get_province_all(session: SessionDep):
+async def get_provinces(session: SessionDep, query: QuerySchema = Depends(QuerySchema)):
     try:
-        result = await ProvinceService.get_provinces(session)
+        result = await ProvinceService.get_provinces(session, query)
         
         if not result:
-            return Result.model_validate({
-                "success": False,
-                "error_code": 404,
-                "message": "Provinces not found"
-            })
+            raise HTTPException(
+                status_code=404,
+                detail=Result.model_validate({
+                    "success": False,
+                    "message": "Provinces not found"
+                })
+            )
         
         return Result.model_validate({
             "success": True,
@@ -26,11 +28,13 @@ async def get_province_all(session: SessionDep):
         })
     
     except Exception as e:
-        return Result.model_validate({
-            "success": False,
-            "error_code": 500,
-            "message": str(e)
-        })
+        return HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=Result.model_validate({
+                "success": False,
+                "message": str(e)
+            })
+        )
 
 @router.get("/{province_id}", response_model=Result)
 async def get_province_by_id(session: SessionDep, province_id: str):

@@ -1,12 +1,13 @@
+from typing import Optional
 from .base import BaseSchema
 
 class BaseGeographySchema(BaseSchema):
     id: int = 0
     name_th: str
-    name_en: str
+    name_en: Optional[str]
 
 class BaseCitySchema(BaseGeographySchema):
-    code: str
+    code: int
 
 class ProvinceSchema(BaseCitySchema):
     geography_id: int

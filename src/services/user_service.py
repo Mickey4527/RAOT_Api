@@ -1,21 +1,22 @@
 from sqlalchemy import or_
-from sqlalchemy.orm import Session
+from sqlalchemy.sql import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.schemas import UserLoginSchema, UserCreateSchema, UserDetailSchema
 from src.models import UserAccount
-from sqlalchemy.sql import select
 from src.helpers.password_service import get_password_hash, verify_password
 class UserService:
     
     @staticmethod
-    def get_users(session: Session):
+    async def get_users(session: AsyncSession):
         stmp = select(UserAccount)
-        result = session.execute(stmp)
+        result = await session.execute(stmp)
         users = result.scalars().all()
 
         return users
 
     @staticmethod
-    async def get_user_by_id(session: Session, user_id: str):
+    async def get_user_by_id(session: AsyncSession, user_id: str):
         stmp = select(UserAccount).where(UserAccount.id == user_id)
         result = await session.execute(stmp)
         user = result.scalars().first()
@@ -23,7 +24,7 @@ class UserService:
         return user
 
     @staticmethod
-    async def get_user(session: Session, username: str):
+    async def get_user(session: AsyncSession, username: str):
         stmp = select(UserAccount).filter(or_(UserAccount.email == username, UserAccount.username == username))
         result = await session.execute(stmp)
         user = result.scalars().first()
@@ -31,23 +32,24 @@ class UserService:
         return user
     
     @staticmethod
-    async def create_user(session: Session, user_create: UserCreateSchema):
+    async def create_user(session: AsyncSession, user_create: UserCreateSchema):
 
         new_user = UserAccount(
+            username=user_create.username,
             email=user_create.email,
             password_hash=get_password_hash(user_create.password),
             telephone=user_create.telephone,
-            user_type=user_create.user_type
+            user_role_id=user_create.user_role_id
         )
 
         session.add(new_user)
         await session.commit()
-        session.refresh(new_user)
+        await session.refresh(new_user)
         
         return UserDetailSchema.model_validate(new_user)
     
     @staticmethod
-    async def authenticate_user(session: Session, user_auth: UserLoginSchema):
+    async def authenticate_user(session: AsyncSession, user_auth: UserLoginSchema):
 
         user = await UserService.get_user(session, user_auth.username)
         
@@ -58,7 +60,7 @@ class UserService:
         return UserDetailSchema.model_validate(user)
     
     @staticmethod
-    async def update_user(session: Session, user_id: str, user: UserDetailSchema):
+    async def update_user(session: AsyncSession, user_id: str, user: UserDetailSchema):
         stmp = select(UserAccount).where(UserAccount.id == user_id)
         result = await session.execute(stmp)
         existing_user = result.scalars().first()
@@ -74,7 +76,7 @@ class UserService:
         return True
     
     @staticmethod
-    async def update_password(session: Session, user_id: str, password: str):
+    async def update_password(session: AsyncSession, user_id: str, password: str):
         stmp = select(UserAccount).where(UserAccount.id == user_id)
         result = await session.execute(stmp)
         existing_user = result.scalars().first()
@@ -88,7 +90,7 @@ class UserService:
         return True
     
     @staticmethod
-    async def delete_user(session: Session, user_id: str):
+    async def delete_user(session: AsyncSession, user_id: str):
         stmp = select(UserAccount).where(UserAccount.id == user_id)
         result = await session.execute(stmp)
         existing_user = result.scalars().first()
@@ -98,5 +100,6 @@ class UserService:
 
         session.delete(existing_user)
         await session.commit()
+        await session.refresh(existing_user)
 
         return True

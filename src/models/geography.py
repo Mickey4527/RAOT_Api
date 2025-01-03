@@ -9,11 +9,9 @@ class Geography(SQLModel):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name_th: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    name_en: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    name_en: Mapped[str] = mapped_column(String(255), nullable=True, unique=True)
 
     # Relationships
-    province: Mapped[List["Provinces"]] = relationship("Provinces", back_populates="geography")
-
-
+    province: Mapped[List["Province"]] = relationship("Province", back_populates="geography")
 
     

@@ -1,6 +1,5 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
 
-from src.helpers.error import raise_http_exception
 from src.routers.deps import SessionDep, get_current_user
 from src.schemas import Result, DistrictSchema
 from src.services import DistrictService, ProvinceService
@@ -12,11 +11,13 @@ async def get_district_all(session: SessionDep):
         result = await DistrictService.get_districts(session)
         
         if not result:
-            return Result.model_validate({
-                "success": False,
-                "error_code": 404,
-                "message": "Districts not found"
-            })
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=Result.model_validate({
+                    "success": False,
+                    "message": "Districts not found"
+                })
+            )
         
         return Result.model_validate({
             "success": True,

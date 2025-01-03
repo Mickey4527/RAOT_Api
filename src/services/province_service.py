@@ -2,14 +2,14 @@ from sqlalchemy import or_
 from sqlalchemy.sql import select
 from sqlalchemy.orm import Session
 
-from src.models import Provinces, Districts
-from src.schemas import BaseCitySchema, ProvinceSchema
+from src.models import Province, District
+from src.schemas import BaseCitySchema, ProvinceSchema, QuerySchema
 
 class ProvinceService:
 
     @staticmethod
-    async def get_provinces(session: Session):
-        stmp = select(Provinces)
+    async def get_provinces(session: Session, query: QuerySchema):
+        stmp = select(Province).limit(query.limit).offset(query.offset).order_by(query.order_by)
         result = await session.execute(stmp)
         provinces = result.scalars().all()
 
@@ -18,7 +18,7 @@ class ProvinceService:
        
     @staticmethod
     async def get_province(session: Session, province_id: str):
-        stmp = select(Provinces).where(Provinces.id == province_id)
+        stmp = select(Province).where(Province.id == province_id)
         result = await session.execute(stmp)
         province = result.scalars().first()
 
@@ -26,7 +26,7 @@ class ProvinceService:
     
     @staticmethod
     async def get_province_by_name(session: Session, name_th: str, name_en: str):
-        stmp = select(Provinces).filter(or_(Provinces.name_th == name_th, Provinces.name_en == name_en))
+        stmp = select(Province).filter(or_(Province.name_th == name_th, Province.name_en == name_en))
         result = await session.execute(stmp)
         province = result.scalars().first()
 
@@ -36,7 +36,7 @@ class ProvinceService:
     @staticmethod
     async def create_province(session: Session, province: ProvinceSchema):
 
-        new_province = Provinces(
+        new_province = Province(
             name_th=province.name_th,
             name_en=province.name_en,
             code=province.code,
@@ -51,7 +51,7 @@ class ProvinceService:
             
     @staticmethod
     async def update_province(session: Session, province_id: str, province: ProvinceSchema):
-        stmp = select(Provinces).where(Provinces.id == province_id)
+        stmp = select(Province).where(Province.id == province_id)
         result = await session.execute(stmp)
         existing_province = result.scalars().first()
 
@@ -69,7 +69,7 @@ class ProvinceService:
 
     @staticmethod
     async def delete_province(session: Session, province_id: str):
-        stmp = select(Provinces).where(Provinces.id == province_id)
+        stmp = select(Province).where(Province.id == province_id)
         result = await session.execute(stmp)
         existing_province = result.scalars().first()
 
@@ -83,8 +83,23 @@ class ProvinceService:
     
     @staticmethod
     async def get_districts_by_province(session: Session, province_id: int):
-        stmp = select(Districts).where(Districts.province_id == province_id)
+        stmp = select(District).where(District.province_id == province_id)
         result = await session.execute(stmp)
         districts = result.scalars().all()
 
         return districts
+    
+    @staticmethod
+    async def import_provinces_by_csv(session: Session, file_path: str):
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            for line in lines:
+                data = line.split(',')
+                province = ProvinceSchema(
+                    name_th=data[0],
+                    name_en=data[1],
+                    code=data[2],
+                    geography_id=data[3]
+                )
+                await ProvinceService.create_province(session, province)
+        return True

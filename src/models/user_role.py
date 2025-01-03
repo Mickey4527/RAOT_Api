@@ -14,3 +14,4 @@ class UserRole(SQLModel):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     role_permission: Mapped["RolePermission"] = relationship("RolePermission", back_populates="role")
+    user_account: Mapped["UserAccount"] = relationship("UserAccount", back_populates="user_role")

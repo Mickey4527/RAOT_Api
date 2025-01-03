@@ -1,15 +1,20 @@
+import uuid
+
+from pydantic import Field
 from .base import BaseSchema
 
 class UserSchema(BaseSchema):
     username: str = ""
     
 class UserLoginSchema(UserSchema):
-    password: str
+    password: str = Field(..., min_length=5)
 
 class UserDetailSchema(UserSchema):
     email: str
     telephone: str
-    user_type: str
 
 class UserCreateSchema(UserLoginSchema, UserDetailSchema):
+    user_role_id: uuid.UUID
+
+class UserTokenSchema(UserDetailSchema):
     pass

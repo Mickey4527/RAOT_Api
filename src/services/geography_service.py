@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import select
 
 from src.models import Geography
@@ -7,9 +8,9 @@ from src.schemas import BaseGeographySchema
 class GeographyService:
 
     @staticmethod
-    def get_geographys(session: Session):
+    async def get_geographys(session: AsyncSession):
         stmp = select(Geography)
-        result = session.execute(stmp)
+        result = await session.execute(stmp)
         geographies = result.scalars().all()
 
         return geographies
@@ -60,6 +61,7 @@ class GeographyService:
         session.refresh(current_geography)
 
         return current_geography
+    
     
     # @staticmethod
     # def get_provinces_by_geography(session: Session, geography_id: str):

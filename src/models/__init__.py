@@ -1,6 +1,6 @@
-from .province import Provinces
-from .district import Districts
-from .sub_district import SubDistricts
+from .province import Province
+from .district import District
+from .sub_district import SubDistrict
 from .user_account import UserAccount
 from .base import Base, SQLModel
 from .user_profile import UserProfile

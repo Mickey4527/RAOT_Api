@@ -9,7 +9,7 @@ router = APIRouter(prefix="/geography", tags=["geography"], dependencies=[Depend
 
 @router.get("/", response_model=Result)
 async def get_geography_all(session: SessionDep):
-    try:
+    # try:
         result = await GeographyService.get_geographys(session)
         
         if not result:
@@ -25,12 +25,12 @@ async def get_geography_all(session: SessionDep):
             "data": [BaseGeographySchema.model_validate(geography) for geography in result]
         })
     
-    except Exception as e:
-        return Result.model_validate({
-            "success": False,
-            "error_code": 500,
-            "message": str(e)
-        })
+    # except Exception as e:
+    #     return Result.model_validate({
+    #         "success": False,
+    #         "error_code": 500,
+    #         "message": str(e)
+    #     })
 
 @router.post("/", response_model=Result)
 async def create_geography(geography: BaseGeographySchema, session: SessionDep):
