@@ -1,23 +1,19 @@
-
-from uuid import UUID
+from typing import Optional
 from .base import BaseSchema
 
-
-class ProvinceBaseSchema(BaseSchema):
+class BaseGeographySchema(BaseSchema):
+    id: int = 0
     name_th: str
-    name_en: str
+    name_en: Optional[str]
 
+class BaseCitySchema(BaseGeographySchema):
+    code: int
 
-class ProvinceSchema(ProvinceBaseSchema):
-    id: UUID
+class ProvinceSchema(BaseCitySchema):
+    geography_id: int
 
-class DistrictSchema(ProvinceBaseSchema):
-    id: UUID
-    province_id: UUID
+class DistrictSchema(BaseCitySchema):
+    province_id: int
 
-class SubDistrictSchema(ProvinceBaseSchema):
-    id: UUID
-    district_id: UUID
-    
-
-
+class DistrictOfProvinceSchema(BaseCitySchema):
+    districts: list[DistrictSchema]
