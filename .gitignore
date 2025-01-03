@@ -8,3 +8,4 @@ __pycache__/
 # Environments python
 .venv/
 env/
+src/services/predict_models/
