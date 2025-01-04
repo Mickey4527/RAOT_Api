@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.base import SQLModel
 
+# TODO แก้ความสัมพันธ์กับ UserAccount
 class UserProfile(SQLModel):
     __tablename__ = "user_profile"
 

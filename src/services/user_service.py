@@ -4,7 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.schemas import UserLoginSchema, UserCreateSchema, UserDetailSchema
 from src.models import UserAccount
-from src.helpers.password_service import get_password_hash, verify_password
+from src.helpers.password_service import get_password_hash, verify_password, random_password
+
+import loguru
 class UserService:
     
     @staticmethod
@@ -34,19 +36,19 @@ class UserService:
     @staticmethod
     async def create_user(session: AsyncSession, user_create: UserCreateSchema):
 
+        # TODO: เพิ่ม role in UserRole
         new_user = UserAccount(
             username=user_create.username,
             email=user_create.email,
             password_hash=get_password_hash(user_create.password),
-            telephone=user_create.telephone,
-            user_role_id=user_create.user_role_id
+            telephone=user_create.telephone
         )
 
         session.add(new_user)
         await session.commit()
         await session.refresh(new_user)
         
-        return UserDetailSchema.model_validate(new_user)
+        return new_user
     
     @staticmethod
     async def authenticate_user(session: AsyncSession, user_auth: UserLoginSchema):
@@ -70,7 +72,6 @@ class UserService:
 
         existing_user.email = user.email
         existing_user.telephone = user.telephone
-        existing_user.user_type = user.user_type
         await session.commit()
 
         return True
@@ -103,3 +104,18 @@ class UserService:
         await session.refresh(existing_user)
 
         return True
+    
+    # @staticmethod
+    # async def create_user(session: AsyncSession, user_create: UserCreateSchema):
+    #     password_random = random_password()
+    #     new_user = UserAccount(
+    #         email=user_create.email,
+    #         password_hash=get_password_hash(password_random)
+    #     )
+        
+    #     session.add(new_user)
+    #     await session.commit()
+    #     await session.refresh(new_user)
+
+    #     return UserDetailSchema.model_validate(new_user), password_random
+

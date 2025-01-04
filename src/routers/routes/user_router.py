@@ -72,7 +72,7 @@ async def register_user(session: SessionDep, user_create: UserCreateSchema):
         return Result.model_validate({
             "success": True,
             "message": "User created successfully",
-            "data": new_user
+            "data": UserDetailSchema.model_validate(new_user)
         })
     
     except Exception as e:
@@ -81,6 +81,25 @@ async def register_user(session: SessionDep, user_create: UserCreateSchema):
             message=str(e)
         )
     
+# @router.get("/create", response_model=Result)
+# async def create_user(session: SessionDep):
+#     try:
+#         user = await UserService.create_user(session)
+
+#         return Result.model_validate({
+#             "success": True,
+#             "message": "User created successfully",
+#             "data": user
+#         })
+    
+#     except Exception as e:
+#         return raise_http_exception(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             message=str(e)
+#         )
+    
+    
 @router.get("/me", dependencies=[Depends(get_current_user)])
 async def read_users_me():
     return "Hello, "
+

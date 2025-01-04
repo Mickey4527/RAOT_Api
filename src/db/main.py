@@ -9,7 +9,7 @@ from loguru import logger
 
 from src.config import settings
 from src.models.user_account import UserAccount
-from src.models.user_role import UserRole
+from src.models.role import Role
 from src.schemas.user_schema import UserCreateSchema
 from src.services.role_service import RoleService
 from src.services.user_service import UserService
@@ -45,28 +45,16 @@ async def init_db(session: AsyncSession):
     role = await RoleService.get_role_by_name(session=session, role_name=settings.FIRST_SUPERUSER_ROLE)
     user = await UserService.get_user(session=session, username=settings.FIRST_SUPERUSER)
 
-
     if not role and not user:
-        
-        role_in = UserRole(
-            role_name=settings.FIRST_SUPERUSER_ROLE,
-            role_description=settings.FIRST_SUPERUSER_ROLE_DESCRIPTION
-        )
-
-        role_result = await RoleService.create_role(session=session, role_create=role_in)
-
         user_in = UserCreateSchema(
             username=settings.FIRST_SUPERUSER,
             email=settings.FIRST_SUPERUSER_EMAIL,
             telephone=settings.FIRST_SUPERUSER_PHONE,
             password=settings.FIRST_SUPERUSER_PASSWORD,
-            user_role_id=role_result.id
         )
         
         await UserService.create_user(session=session, user_create=user_in)
         await DataService.import_csv_files(session=session, csv_files_import=settings.CSV_FILES_IMPORT)
-    
-    
 
 
 async def delete_all_data():
