@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from loguru import logger
 
-from src.db.main import init_db
 from src.config import settings
 from src.routers.main import api_router
 

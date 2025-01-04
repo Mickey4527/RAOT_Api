@@ -14,5 +14,5 @@ class District(SQLModel):
     province_id: Mapped[int] = mapped_column(Integer, ForeignKey("province_geography.id"), nullable=False)
 
     # Relationships
-    province: Mapped["Province"] = relationship("Province", back_populates="district")
-    sub_district: Mapped[List["SubDistrict"]] = relationship("SubDistrict", back_populates="district")
+    province: Mapped["Province"] = relationship("Province", back_populates="districts")
+    sub_districts: Mapped[List["SubDistrict"]] = relationship("SubDistrict", back_populates="districts")

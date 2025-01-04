@@ -14,7 +14,7 @@ class UserDetailSchema(UserSchema):
     telephone: str
 
 class UserCreateSchema(UserLoginSchema, UserDetailSchema):
-    user_role_id: uuid.UUID
+    pass
 
 class UserTokenSchema(UserDetailSchema):
     pass
