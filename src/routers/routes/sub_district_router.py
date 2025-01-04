@@ -2,31 +2,31 @@ from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.routers.deps import SessionDep, get_current_user
-from src.schemas import Result, DistrictSchema
-from src.services import DistrictService
+from src.schemas import Result, SubDistrictCreateSchema
+from src.services import SubDistrictService
 
-router = APIRouter(prefix="/district", tags=["district"], dependencies=[Depends(get_current_user)])
+router = APIRouter(prefix="/sub_district", tags=["sub_district"], dependencies=[Depends(get_current_user)])
 
 
 @router.post("/")
-async def create_district(session: SessionDep, data_create: DistrictSchema):
+async def create_sub_district(session: SessionDep, data_create: SubDistrictCreateSchema):
     try:
         
-        new_district = await DistrictService.create_district(session, data_create)
+        new_sub_district = await SubDistrictService.create_sub_district(session, data_create)
 
-        if not new_district:
+        if not new_sub_district:
             raise HTTPException(
                 status_code=400,
                 detail=Result.model_validate({
                     "success": False,
-                    "message": "District already exists"
+                    "message": "Sub district already exists"
                 })
             )
 
         return Result.model_validate({
             "success": True,
             "message": "District created successfully",
-            "data": DistrictSchema.model_validate(new_district)
+            "data": SubDistrictCreateSchema.model_validate(new_sub_district)
         })
     
     except SQLAlchemyError as e:
@@ -40,10 +40,10 @@ async def create_district(session: SessionDep, data_create: DistrictSchema):
         )
     
 @router.put("/{code}")
-async def update_district(session: SessionDep, data_update: DistrictSchema, code: int):
+async def update_district(session: SessionDep, data_update: SubDistrictCreateSchema, code: int):
     try:
 
-        result = await DistrictService.update_district(session, data_update, code)
+        result = await SubDistrictService.update_sub_district(session, data_update, code)
 
         if not result:
             raise HTTPException(
@@ -53,11 +53,11 @@ async def update_district(session: SessionDep, data_update: DistrictSchema, code
                     "message": "District not found"
                 })
             )
-
+        
         return Result.model_validate({
             "success": True,
             "message": "District updated successfully",
-            "data": DistrictSchema.model_validate(result)
+            "data": SubDistrictCreateSchema.model_validate(result)
         })
     
     except SQLAlchemyError as e:
@@ -74,7 +74,7 @@ async def update_district(session: SessionDep, data_update: DistrictSchema, code
 async def delete_district(session: SessionDep, code: int):
     try:
 
-        result = await DistrictService.delete_district(session, code)
+        result = await SubDistrictService.delete_sub_district(session, code)
 
         if not result:
             raise HTTPException(

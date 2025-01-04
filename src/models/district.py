@@ -7,8 +7,7 @@ from src.models.base import SQLModel
 class District(SQLModel):
     __tablename__ = "district_geography"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    code: Mapped[int] = mapped_column(Integer, nullable=False)
+    code: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name_th: Mapped[str] = mapped_column(String(255), nullable=False)
     name_en: Mapped[str] = mapped_column(String(255), nullable=True)
     province_id: Mapped[int] = mapped_column(Integer, ForeignKey("province_geography.id"), nullable=False)

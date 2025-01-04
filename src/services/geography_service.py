@@ -63,10 +63,10 @@ class GeographyService:
         return current_geography
     
     
-    # @staticmethod
-    # def get_provinces_by_geography(session: Session, geography_id: str):
-    #     stmp = select(Geography).where(Geography.id == geography_id)
-    #     result = session.execute(stmp)
-    #     geography = result.scalars().first()
+    @staticmethod
+    def get_provinces_by_geography(session: Session, id: str):
+        stmp = select(Geography).where(Geography.id == id)
+        result = session.execute(stmp)
+        geography = result.scalars().first()
 
-    #     return geography.province
+        return geography

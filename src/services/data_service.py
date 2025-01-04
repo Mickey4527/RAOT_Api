@@ -42,8 +42,8 @@ class DataService:
                     logger.success(f"Successfully imported {len(records)} records into {model_name} table.")
                     await session.commit()
 
-                except FileNotFoundError:
-                    logger.error(f"CSV file not found: {file_path}")
+                except pd.errors.EmptyDataError:
+                    logger.error(f"The CSV file {file_path} is invalid or empty.")
                 except SQLAlchemyError as db_error:
                     logger.error(f"Database error occurred for {model_name}: {db_error}")
                     await session.rollback()

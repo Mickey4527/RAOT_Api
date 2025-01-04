@@ -1,56 +1,90 @@
 from sqlalchemy.sql import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
+
 from src.models import District
-from src.schemas import DistrictSchema
+from src.schemas import DistrictCreateSchema
 
 class DistrictService:
 
     @staticmethod
-    async def create_district(session: AsyncSession, district: DistrictSchema):
+    def _populate_district_fields(
+            sub_district: District, data: DistrictCreateSchema
+        ) -> None:
         
-        new_district = District(
-            name_th=district.name_th,
-            name_en=district.name_en,
-            province_id=district.province_id,
-            code=district.code
-        )
+        """
+        Populate fields of a SubDistrict instance with data from SubDistrictCreateSchema.
+        """
 
-        session.add(new_district)
-        await session.commit()
-        await session.refresh(new_district)
+        sub_district.name_th = data.name_th
+        sub_district.name_en = data.name_en
+        sub_district.code = data.code
+        sub_district.province_id = data.province_id
 
-        return new_district
+
+    @staticmethod
+    async def _get_district_by_code(session: AsyncSession, code: int):
+        
+        stmp = select(District).where(District.code == code)
+        result = await session.execute(stmp)
+
+        return result.scalars().first()
+    
     
     @staticmethod
-    async def update_district(session: AsyncSession, district_id: str, district: DistrictSchema):
-        stmp = select(District).where(District.id == district_id)
-        result = await session.execute(stmp)
-        existing_district = result.scalars().first()
+    async def create_district(session: AsyncSession, district: DistrictCreateSchema):
+            
+        try:
+            existing_district = await DistrictService._get_district_by_code(session, district.code)
 
-        if not existing_district:
-            return False
+            if existing_district:
+                return False
+            
+            new_district = DistrictService._populate_district_fields(District(), district)
+            
+            session.add(new_district)
+            await session.commit()
+            await session.refresh(new_district)
 
-        existing_district.name_th = district.name_th
-        existing_district.name_en = district.name_en
-        existing_district.province_id = district.province_id
-        existing_district.code = district.code
+            return new_district
+        
+        except SQLAlchemyError as e:
 
-        await session.commit()
-        await session.refresh(existing_district)
+            session.rollback()
+            raise e
+    
 
-        return DistrictSchema.model_validate(existing_district)
+    @staticmethod
+    async def update_district(session: AsyncSession, district: DistrictCreateSchema, code: int):
+            
+        try:
+        
+            existing_district = DistrictService._get_district_by_code(session, code)
+
+            if not existing_district:
+                return False
+
+            DistrictService._populate_district_fields(existing_district, district)
+
+            await session.commit()
+            await session.refresh(existing_district)
+
+            return existing_district
+        
+        except SQLAlchemyError as e:
+            
+            session.rollback()
+            raise e
     
     @staticmethod
-    async def delete_district(session: AsyncSession, district_id: str):
-        stmp = select(District).where(District.id == district_id)
-        result = await session.execute(stmp)
-        existing_district = result.scalars().first()
+    async def delete_district(session: AsyncSession, code: int):
+
+        existing_district = DistrictService._get_district_by_code(session, code)
 
         if not existing_district:
             return False
 
         session.delete(existing_district)
         await session.commit()
-        await session.refresh(existing_district)
 
         return True

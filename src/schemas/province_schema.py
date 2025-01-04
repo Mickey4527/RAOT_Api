@@ -3,7 +3,6 @@ from .base import BaseSchema
 from .query_schema import QuerySchema
 
 class BaseGeographySchema(BaseSchema):
-    id: Optional[int] = None
     name_th: str
     name_en: Optional[str] = None
 
@@ -18,7 +17,7 @@ class ProvinceSchema(BaseCitySchema):
     geography_id: int
 
 class SubDistrictSchema(BaseCitySchema):
-    zipCode: int
+    zip_code: int
     
 class DistrictSchema(BaseCitySchema):
     sub_districts: Optional[List[SubDistrictSchema]] = None
@@ -26,6 +25,8 @@ class DistrictSchema(BaseCitySchema):
 class ProvinceDetailSchema(ProvinceSchema):
     districts: Optional[List[DistrictSchema]] = None
 
-class SubDistrictCreateSchema(SubDistrictSchema):
+class DistrictCreateSchema(DistrictSchema):
     province_id: int
+class SubDistrictCreateSchema(SubDistrictSchema):
+    district_id: int
 

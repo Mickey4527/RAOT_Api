@@ -1,7 +1,6 @@
-from sqlalchemy import or_
-from sqlalchemy.sql import select
-from sqlalchemy.orm import Session
+from sqlalchemy.sql import select, desc
 from sqlalchemy.orm import joinedload
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models import Province, District
 from src.schemas import ProvinceSchema, QueryGeographySchema
@@ -9,7 +8,22 @@ from src.schemas import ProvinceSchema, QueryGeographySchema
 class ProvinceService:
 
     @staticmethod
-    async def get_provinces(session: Session, query: QueryGeographySchema):
+    def _populate_sub_district_fields(
+            province: Province, data: ProvinceSchema
+        ) -> None:
+        
+        """
+        Populate fields of a Province instance with data from ProvinceSchema.
+        """
+        province.name_th = data.name_th
+        province.name_en = data.name_en
+        province.code = data.code
+        province.geography_id = data.geography_id
+
+
+
+    @staticmethod
+    async def get_provinces(session: AsyncSession, query: QueryGeographySchema):
 
         if query.code and query.detail:
             stmp = (
@@ -18,14 +32,14 @@ class ProvinceService:
                 .options(
                     joinedload(Province.districts).joinedload(District.sub_districts)
                 )
-                .order_by(Province.name_th)
+                .order_by(query.order_by)
             )
             result = await session.execute(stmp)
-            provinces = result.scalars().unique().first()
+            provinces = result.scalars().first()
 
             return provinces
    
-        stmp = select(Province)
+        stmp = select(Province).order_by(Province.name_th)
         result = await session.execute(stmp)
         provinces = result.scalars().all()
 
@@ -33,44 +47,70 @@ class ProvinceService:
 
 
     @staticmethod
-    async def create_province(session: Session, province: ProvinceSchema):
+    async def _get_province_by_code(session: AsyncSession, code: int):
+        
+        stmp = select(Province).where(Province.code == code)
+        result = await session.execute(stmp)
 
-        new_province = Province(
-            name_th=province.name_th,
-            name_en=province.name_en,
-            code=province.code,
-            geography_id=province.geography_id
-        )
+        return result.scalars().first()
+    
 
-        session.add(new_province)
-        await session.commit()
-        session.refresh(new_province)
+    @staticmethod
+    async def create_province(session: AsyncSession, province: ProvinceSchema):
+            
+        try:
 
-        return ProvinceSchema.model_validate(new_province)
+            existing_province = await ProvinceService._get_province_by_code(session, province.code)
+
+            if existing_province:
+                return False
+
+            new_province = ProvinceService._populate_sub_district_fields(Province(), province)
+
+            session.add(new_province)
+            await session.commit()
+            session.refresh(new_province)
+
+            return new_province
+        
+        except Exception as e:
+
+            session.rollback()
+            raise e
+        
+        finally:
+            
+            session.close()
             
     @staticmethod
-    async def update_province(session: Session, province: ProvinceSchema, query: QueryGeographySchema):
-        stmp = select(Province).where(Province.code == query.code)
-        result = await session.execute(stmp)
-        existing_province = result.scalars().first()
+    async def update_province(session: AsyncSession, province: ProvinceSchema, code: int):
+            
+        try:
+            existing_province = await ProvinceService._get_province_by_code(session, code)
 
-        if not existing_province:
-            return False
+            if not existing_province:
+                return False
 
-        existing_province.name_th = province.name_th
-        existing_province.name_en = province.name_en
-        existing_province.code = province.code
-        existing_province.geography_id = province.geography_id
+            ProvinceService._populate_sub_district_fields(existing_province, province)
+            await session.commit()
+            await session.refresh(existing_province)
 
-        await session.commit()
-
-        return True
+            return True
+        
+        except Exception as e:
+            
+            session.rollback()
+            raise e
+        
+        finally:
+            
+            session.close()
+        
 
     @staticmethod
-    async def delete_province(session: Session, query: QueryGeographySchema):
-        stmp = select(Province).where(Province.code == query.code)
-        result = await session.execute(stmp)
-        existing_province = result.scalars().first()
+    async def delete_province(session: AsyncSession, code: int):
+
+        existing_province = await ProvinceService._get_province_by_code(session, code)
 
         if not existing_province:
             return False

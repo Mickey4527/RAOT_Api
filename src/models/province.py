@@ -15,6 +15,5 @@ class Province(SQLModel):
 
     # Relationships
     districts: Mapped[List["District"]] = relationship("District", back_populates="province")
-    sub_districts: Mapped[List["SubDistrict"]] = relationship("SubDistrict", back_populates="province")
     geography: Mapped["Geography"] = relationship("Geography", back_populates="province")
     
