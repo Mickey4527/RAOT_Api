@@ -1,10 +1,11 @@
 from datetime import timedelta
 from typing import Annotated
+from sqlalchemy.exc import SQLAlchemyError
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from src.helpers.error import raise_http_exception, error_response
-from src.schemas import Result, UserLoginSchema, UserCreateSchema, Token, UserDetailSchema
+from src.schemas import Result, UserLoginSchema, UserCreateSchema, Token, UserDetailSchema, QuerySchema
 from src.services import UserService, TokenService
 from src.routers.deps import SessionDep, get_current_user
 from src.config import settings
@@ -12,14 +13,19 @@ from src.config import settings
 router = APIRouter(prefix="/u", tags=["user"])
 
 @router.get("/", response_model=Result)
-async def get_user_all(session: SessionDep):
+async def get_user_all(session: SessionDep, query: QuerySchema = Depends()):
+    
     try:
-        result = await UserService.get_users(session)
+
+        result = await UserService.get_users(session, query)
         
         if not result:
-            raise raise_http_exception(
-                status_code=status.HTTP_404_NOT_FOUND,
-                message="Users not found"
+            raise HTTPException(
+                status_code=404,
+                detail=Result.model_validate({
+                    "success": False,
+                    "message": "Users not found"
+                })
             )
 
         return Result.model_validate({
@@ -28,32 +34,47 @@ async def get_user_all(session: SessionDep):
             "data": [UserDetailSchema.model_validate(user) for user in result]
         })
     
-    except Exception as e:
-        return raise_http_exception(
+    except SQLAlchemyError as e:
+        raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            message=str(e)
+            detail=Result.model_validate({
+                "success": False,
+                "error_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e)
+            })
         )
     
 @router.post("/login/auth")
 async def login_for_access_token(session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+   
     try:
+
         user = await UserService.authenticate_user(session, form_data)
+        
         if not user:
-            return error_response(
+            raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                message="Incorrect username or password"
+                detail=Result.model_validate({
+                    "success": False,
+                    "message": "Incorrect username or password"
+                })
             )
         
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = TokenService.create_access_token(
             subject=user, expires_delta=access_token_expires
         )
+
         return Token(access_token=access_token, token_type="bearer").model_dump()
         
-    except Exception as e:
-        return raise_http_exception(
+    except SQLAlchemyError as e:
+        raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            message=str(e)
+            detail=Result.model_validate({
+                "success": False,
+                "error_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": str(e)
+            })
         )
     
 @router.post("/register", response_model=Result)

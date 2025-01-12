@@ -1,8 +1,9 @@
 from .base import BaseSchema
 
 class PredictSchema(BaseSchema):
-    province: str
-    district: str
+    province: int
+    district: int
+    sub_district: int
     rubber_area: float
     rubber_tree_count: int
     rubber_type: str

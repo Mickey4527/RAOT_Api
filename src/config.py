@@ -1,11 +1,20 @@
 import json
+from typing import Annotated, Any, Literal
 from loguru import logger
-from pydantic import HttpUrl, PostgresDsn, computed_field
+from pydantic import AnyUrl, BeforeValidator, HttpUrl, PostgresDsn, computed_field
 from pydantic_core import MultiHostUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    ENVIRONMENT: str
+
+    def parse_cors(v: Any) -> list[str] | str:
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip() for i in v.split(",")]
+        elif isinstance(v, list | str):
+            return v
+        raise ValueError(v)
+
+    ENVIRONMENT: Literal["local", "staging", "production"] = "local"
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str
     SENTRY_DSN: HttpUrl | None = None
@@ -29,7 +38,11 @@ class Settings(BaseSettings):
     EXLUDED_PATHS: list[str] = []
 
     CSV_FILES_IMPORT: list[dict] = []
-    
+    FRONTEND_HOST: str = "http://localhost:3000"
+
+    BACKEND_CORS_ORIGINS: Annotated[
+        list[AnyUrl] | str, BeforeValidator(parse_cors)
+    ] = []
 
     model_config = SettingsConfigDict(
         env_file = ".env",
@@ -49,5 +62,11 @@ class Settings(BaseSettings):
             path=self.POSTGRES_DB,
         )
     
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def all_cors_origins(self) -> list[str]:
+        return [str(origin).rstrip("/") for origin in self.BACKEND_CORS_ORIGINS] + [
+            self.FRONTEND_HOST
+        ]
 
 settings = Settings()

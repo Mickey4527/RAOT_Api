@@ -3,23 +3,17 @@ from .base import BaseSchema
 from .query_schema import QuerySchema
 
 class BaseGeographySchema(BaseSchema):
+    code: int
     name_th: str
     name_en: Optional[str] = None
 
-class QueryGeographySchema(QuerySchema):
-    code: Optional[int] = None
-    detail: Optional[bool] = False
-
-class BaseCitySchema(BaseGeographySchema):
-    code: int
-
-class ProvinceSchema(BaseCitySchema):
+class ProvinceSchema(BaseGeographySchema):
     geography_id: int
 
-class SubDistrictSchema(BaseCitySchema):
+class SubDistrictSchema(BaseGeographySchema):
     zip_code: int
     
-class DistrictSchema(BaseCitySchema):
+class DistrictSchema(BaseGeographySchema):
     sub_districts: Optional[List[SubDistrictSchema]] = None
 
 class ProvinceDetailSchema(ProvinceSchema):
@@ -30,3 +24,6 @@ class DistrictCreateSchema(DistrictSchema):
 class SubDistrictCreateSchema(SubDistrictSchema):
     district_id: int
 
+class QueryGeographySchema(QuerySchema):
+    code: Optional[int] = None
+    detail: Optional[bool] = False

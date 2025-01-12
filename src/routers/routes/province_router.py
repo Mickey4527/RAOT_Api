@@ -5,7 +5,7 @@ from src.routers.deps import SessionDep, get_current_user
 from src.schemas import Result, ProvinceDetailSchema, ProvinceSchema, QueryGeographySchema
 from src.services import ProvinceService
 
-router = APIRouter(prefix="/province", tags=["province"], dependencies=[Depends(get_current_user)])
+router = APIRouter(prefix="/province", tags=["province"])
 
 # TODO: Refactor the code to use the ProvinceService class
 # TODO: Message should move to language file
@@ -47,7 +47,7 @@ async def get_provinces(session: SessionDep, query: QueryGeographySchema = Depen
             })
         )
 
-@router.post("/", response_model=Result)
+@router.post("/", response_model=Result, dependencies=[Depends(get_current_user)])
 async def create_province(session: SessionDep, data_create: ProvinceSchema):
     try:
         result = await ProvinceService.create_province(session, data_create)
@@ -79,7 +79,7 @@ async def create_province(session: SessionDep, data_create: ProvinceSchema):
             })
         )
 
-@router.put("/{code}", response_model=Result)
+@router.put("/{code}", response_model=Result, dependencies=[Depends(get_current_user)])
 async def update_province(session: SessionDep, province: ProvinceSchema, code: int):
     try:
 
@@ -108,7 +108,7 @@ async def update_province(session: SessionDep, province: ProvinceSchema, code: i
         )
 
 
-@router.delete("/{code}", response_model=Result)
+@router.delete("/{code}", response_model=Result, dependencies=[Depends(get_current_user)])
 async def delete_province(session: SessionDep, code: int):
     try:
         result = await ProvinceService.delete_province(session, code)

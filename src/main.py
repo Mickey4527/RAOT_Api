@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from loguru import logger
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import settings
 from src.routers.main import api_router
@@ -12,6 +12,15 @@ def get_app() -> FastAPI:
 
     app.include_router(api_router, prefix=settings.API_V1_STR)
     
+    if settings.all_cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.all_cors_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
     return app
 
 app = get_app()

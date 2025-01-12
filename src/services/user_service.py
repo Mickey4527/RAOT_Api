@@ -2,16 +2,16 @@ from sqlalchemy import or_
 from sqlalchemy.sql import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.schemas import UserLoginSchema, UserCreateSchema, UserDetailSchema
+from src.schemas import UserLoginSchema, UserCreateSchema, UserDetailSchema, QuerySchema
 from src.models import UserAccount
 from src.helpers.password_service import get_password_hash, verify_password, random_password
 
-import loguru
 class UserService:
     
     @staticmethod
-    async def get_users(session: AsyncSession):
-        stmp = select(UserAccount)
+    async def get_users(session: AsyncSession, query: QuerySchema):
+
+        stmp = select(UserAccount).limit(query.limit).offset(query.offset)
         result = await session.execute(stmp)
         users = result.scalars().all()
 
@@ -31,24 +31,28 @@ class UserService:
         result = await session.execute(stmp)
         user = result.scalars().first()
 
-        return user
+        return user 
     
     @staticmethod
     async def create_user(session: AsyncSession, user_create: UserCreateSchema):
 
-        # TODO: เพิ่ม role in UserRole
-        new_user = UserAccount(
-            username=user_create.username,
-            email=user_create.email,
-            password_hash=get_password_hash(user_create.password),
-            telephone=user_create.telephone
-        )
+        try:
+            # TODO: เพิ่ม role in UserRole
+            new_user = UserAccount(
+                username=user_create.username,
+                email=user_create.email,
+                password_hash=get_password_hash(user_create.password),
+                telephone=user_create.telephone
+            )
 
-        session.add(new_user)
-        await session.commit()
-        await session.refresh(new_user)
+            session.add(new_user)
+            await session.commit()
+            await session.refresh(new_user)
+            
+            return new_user
         
-        return new_user
+        except Exception as e:
+            return False
     
     @staticmethod
     async def authenticate_user(session: AsyncSession, user_auth: UserLoginSchema):

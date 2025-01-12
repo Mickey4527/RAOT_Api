@@ -1,78 +1,78 @@
-id,name_th,name_en,geography_id,code
-1,กรุงเทพมหานคร,Bangkok,2,10
-2,สมุทรปราการ,Samut Prakan,2,11
-3,นนทบุรี,Nonthaburi,2,12
-4,ปทุมธานี,Pathum Thani,2,13
-5,พระนครศรีอยุธยา,Phra Nakhon Si Ayutthaya,2,14
-6,อ่างทอง,Ang Thong,2,15
-7,ลพบุรี,Loburi,2,16
-8,สิงห์บุรี,Sing Buri,2,17
-9,ชัยนาท,Chai Nat,2,18
-10,สระบุรี,Saraburi,2,19
-11,ชลบุรี,Chon Buri,5,20
-12,ระยอง,Rayong,5,21
-13,จันทบุรี,Chanthaburi,5,22
-14,ตราด,Trat,5,23
-15,ฉะเชิงเทรา,Chachoengsao,5,24
-16,ปราจีนบุรี,Prachin Buri,5,25
-17,นครนายก,Nakhon Nayok,2,26
-18,สระแก้ว,Sa Kaeo,5,27
-19,นครราชสีมา,Nakhon Ratchasima,3,28
-20,บุรีรัมย์,Buri Ram,3,29
-21,สุรินทร์,Surin,3,30
-22,ศรีสะเกษ,Si Sa Ket,3,31
-23,อุบลราชธานี,Ubon Ratchathani,3,32
-24,ยโสธร,Yasothon,3,33
-25,ชัยภูมิ,Chaiyaphum,3,34
-26,อำนาจเจริญ,Amnat Charoen,3,35
-27,หนองบัวลำภู,Nong Bua Lam Phu,3,36
-28,ขอนแก่น,Khon Kaen,3,37
-29,อุดรธานี,Udon Thani,3,38
-30,เลย,Loei,3,39
-31,หนองคาย,Nong Khai,3,40
-32,มหาสารคาม,Maha Sarakham,3,41
-33,ร้อยเอ็ด,Roi Et,3,42
-34,กาฬสินธุ์,Kalasin,3,43
-35,สกลนคร,Sakon Nakhon,3,44
-36,นครพนม,Nakhon Phanom,3,45
-37,มุกดาหาร,Mukdahan,3,46
-38,เชียงใหม่,Chiang Mai,1,47
-39,ลำพูน,Lamphun,1,48
-40,ลำปาง,Lampang,1,49
-41,อุตรดิตถ์,Uttaradit,1,50
-42,แพร่,Phrae,1,51
-43,น่าน,Nan,1,52
-44,พะเยา,Phayao,1,53
-45,เชียงราย,Chiang Rai,1,54
-46,แม่ฮ่องสอน,Mae Hong Son,1,55
-47,นครสวรรค์,Nakhon Sawan,2,56
-48,อุทัยธานี,Uthai Thani,2,57
-49,กำแพงเพชร,Kamphaeng Phet,2,58
-50,ตาก,Tak,4,59
-51,สุโขทัย,Sukhothai,2,60
-52,พิษณุโลก,Phitsanulok,2,61
-53,พิจิตร,Phichit,2,62
-54,เพชรบูรณ์,Phetchabun,2,63
-55,ราชบุรี,Ratchaburi,4,64
-56,กาญจนบุรี,Kanchanaburi,4,65
-57,สุพรรณบุรี,Suphan Buri,2,66
-58,นครปฐม,Nakhon Pathom,2,67
-59,สมุทรสาคร,Samut Sakhon,2,68
-60,สมุทรสงคราม,Samut Songkhram,2,69
-61,เพชรบุรี,Phetchaburi,4,70
-62,ประจวบคีรีขันธ์,Prachuap Khiri Khan,4,71
-63,นครศรีธรรมราช,Nakhon Si Thammarat,6,72
-64,กระบี่,Krabi,6,73
-65,พังงา,Phangnga,6,74
-66,ภูเก็ต,Phuket,6,75
-67,สุราษฎร์ธานี,Surat Thani,6,76
-68,ระนอง,Ranong,6,77
-69,ชุมพร,Chumphon,6,78
-70,สงขลา,Songkhla,6,79
-71,สตูล,Satun,6,80
-72,ตรัง,Trang,6,81
-73,พัทลุง,Phatthalung,6,82
-74,ปัตตานี,Pattani,6,83
-75,ยะลา,Yala,6,84
-76,นราธิวาส,Narathiwat,6,85
-77,บึงกาฬ,buogkan,3,86
+name_th,name_en,geography_id,code
+กรุงเทพมหานคร,Bangkok,2,10
+สมุทรปราการ,Samut Prakan,2,11
+นนทบุรี,Nonthaburi,2,12
+ปทุมธานี,Pathum Thani,2,13
+พระนครศรีอยุธยา,Phra Nakhon Si Ayutthaya,2,14
+อ่างทอง,Ang Thong,2,15
+ลพบุรี,Loburi,2,16
+สิงห์บุรี,Sing Buri,2,17
+ชัยนาท,Chai Nat,2,18
+สระบุรี,Saraburi,2,19
+ชลบุรี,Chon Buri,5,20
+ระยอง,Rayong,5,21
+จันทบุรี,Chanthaburi,5,22
+ตราด,Trat,5,23
+ฉะเชิงเทรา,Chachoengsao,5,24
+ปราจีนบุรี,Prachin Buri,5,25
+นครนายก,Nakhon Nayok,2,26
+สระแก้ว,Sa Kaeo,5,27
+นครราชสีมา,Nakhon Ratchasima,3,30
+บุรีรัมย์,Buri Ram,3,31
+สุรินทร์,Surin,3,32
+ศรีสะเกษ,Si Sa Ket,3,33
+อุบลราชธานี,Ubon Ratchathani,3,34
+ยโสธร,Yasothon,3,35
+ชัยภูมิ,Chaiyaphum,3,36
+อำนาจเจริญ,Amnat Charoen,3,37
+หนองบัวลำภู,Nong Bua Lam Phu,3,39
+ขอนแก่น,Khon Kaen,3,40
+อุดรธานี,Udon Thani,3,41
+เลย,Loei,3,42
+หนองคาย,Nong Khai,3,43
+มหาสารคาม,Maha Sarakham,3,44
+ร้อยเอ็ด,Roi Et,3,45
+กาฬสินธุ์,Kalasin,3,46
+สกลนคร,Sakon Nakhon,3,47
+นครพนม,Nakhon Phanom,3,48
+มุกดาหาร,Mukdahan,3,49
+เชียงใหม่,Chiang Mai,1,50
+ลำพูน,Lamphun,1,51
+ลำปาง,Lampang,1,52
+อุตรดิตถ์,Uttaradit,1,53
+แพร่,Phrae,1,54
+น่าน,Nan,1,55
+พะเยา,Phayao,1,56
+เชียงราย,Chiang Rai,1,57
+แม่ฮ่องสอน,Mae Hong Son,1,58
+นครสวรรค์,Nakhon Sawan,2,60
+อุทัยธานี,Uthai Thani,2,61
+กำแพงเพชร,Kamphaeng Phet,2,62
+ตาก,Tak,4,63
+สุโขทัย,Sukhothai,2,64
+พิษณุโลก,Phitsanulok,2,65
+พิจิตร,Phichit,2,66
+เพชรบูรณ์,Phetchabun,2,67
+ราชบุรี,Ratchaburi,4,70
+กาญจนบุรี,Kanchanaburi,4,71
+สุพรรณบุรี,Suphan Buri,2,72
+นครปฐม,Nakhon Pathom,2,73
+สมุทรสาคร,Samut Sakhon,2,74
+สมุทรสงคราม,Samut Songkhram,2,75
+เพชรบุรี,Phetchaburi,4,76
+ประจวบคีรีขันธ์,Prachuap Khiri Khan,4,77
+นครศรีธรรมราช,Nakhon Si Thammarat,6,80
+กระบี่,Krabi,6,81
+พังงา,Phangnga,6,82
+ภูเก็ต,Phuket,6,83
+สุราษฎร์ธานี,Surat Thani,6,84
+ระนอง,Ranong,6,85
+ชุมพร,Chumphon,6,86
+สงขลา,Songkhla,6,90
+สตูล,Satun,6,91
+ตรัง,Trang,6,92
+พัทลุง,Phatthalung,6,93
+ปัตตานี,Pattani,6,94
+ยะลา,Yala,6,95
+นราธิวาส,Narathiwat,6,96
+บึงกาฬ,buogkan,3,38

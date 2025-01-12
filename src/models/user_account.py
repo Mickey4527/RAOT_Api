@@ -21,5 +21,5 @@ class UserAccount(SQLModel):
     telephone: Mapped[str] = mapped_column(String(10), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    profile: Mapped["UserProfile"] = relationship("UserProfile", back_populates="user_account", uselist=False)
+    profile: Mapped["UserProfile"] = relationship(back_populates="user_account")
     user_roles: Mapped["UserRole"] = relationship("UserRole", back_populates="user", uselist=True)
