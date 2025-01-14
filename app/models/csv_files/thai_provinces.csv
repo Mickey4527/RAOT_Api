@@ -1,0 +1,78 @@
+name_th,name_en,geography_id,code
+กรุงเทพมหานคร,Bangkok,2,10
+สมุทรปราการ,Samut Prakan,2,11
+นนทบุรี,Nonthaburi,2,12
+ปทุมธานี,Pathum Thani,2,13
+พระนครศรีอยุธยา,Phra Nakhon Si Ayutthaya,2,14
+อ่างทอง,Ang Thong,2,15
+ลพบุรี,Loburi,2,16
+สิงห์บุรี,Sing Buri,2,17
+ชัยนาท,Chai Nat,2,18
+สระบุรี,Saraburi,2,19
+ชลบุรี,Chon Buri,5,20
+ระยอง,Rayong,5,21
+จันทบุรี,Chanthaburi,5,22
+ตราด,Trat,5,23
+ฉะเชิงเทรา,Chachoengsao,5,24
+ปราจีนบุรี,Prachin Buri,5,25
+นครนายก,Nakhon Nayok,2,26
+สระแก้ว,Sa Kaeo,5,27
+นครราชสีมา,Nakhon Ratchasima,3,30
+บุรีรัมย์,Buri Ram,3,31
+สุรินทร์,Surin,3,32
+ศรีสะเกษ,Si Sa Ket,3,33
+อุบลราชธานี,Ubon Ratchathani,3,34
+ยโสธร,Yasothon,3,35
+ชัยภูมิ,Chaiyaphum,3,36
+อำนาจเจริญ,Amnat Charoen,3,37
+หนองบัวลำภู,Nong Bua Lam Phu,3,39
+ขอนแก่น,Khon Kaen,3,40
+อุดรธานี,Udon Thani,3,41
+เลย,Loei,3,42
+หนองคาย,Nong Khai,3,43
+มหาสารคาม,Maha Sarakham,3,44
+ร้อยเอ็ด,Roi Et,3,45
+กาฬสินธุ์,Kalasin,3,46
+สกลนคร,Sakon Nakhon,3,47
+นครพนม,Nakhon Phanom,3,48
+มุกดาหาร,Mukdahan,3,49
+เชียงใหม่,Chiang Mai,1,50
+ลำพูน,Lamphun,1,51
+ลำปาง,Lampang,1,52
+อุตรดิตถ์,Uttaradit,1,53
+แพร่,Phrae,1,54
+น่าน,Nan,1,55
+พะเยา,Phayao,1,56
+เชียงราย,Chiang Rai,1,57
+แม่ฮ่องสอน,Mae Hong Son,1,58
+นครสวรรค์,Nakhon Sawan,2,60
+อุทัยธานี,Uthai Thani,2,61
+กำแพงเพชร,Kamphaeng Phet,2,62
+ตาก,Tak,4,63
+สุโขทัย,Sukhothai,2,64
+พิษณุโลก,Phitsanulok,2,65
+พิจิตร,Phichit,2,66
+เพชรบูรณ์,Phetchabun,2,67
+ราชบุรี,Ratchaburi,4,70
+กาญจนบุรี,Kanchanaburi,4,71
+สุพรรณบุรี,Suphan Buri,2,72
+นครปฐม,Nakhon Pathom,2,73
+สมุทรสาคร,Samut Sakhon,2,74
+สมุทรสงคราม,Samut Songkhram,2,75
+เพชรบุรี,Phetchaburi,4,76
+ประจวบคีรีขันธ์,Prachuap Khiri Khan,4,77
+นครศรีธรรมราช,Nakhon Si Thammarat,6,80
+กระบี่,Krabi,6,81
+พังงา,Phangnga,6,82
+ภูเก็ต,Phuket,6,83
+สุราษฎร์ธานี,Surat Thani,6,84
+ระนอง,Ranong,6,85
+ชุมพร,Chumphon,6,86
+สงขลา,Songkhla,6,90
+สตูล,Satun,6,91
+ตรัง,Trang,6,92
+พัทลุง,Phatthalung,6,93
+ปัตตานี,Pattani,6,94
+ยะลา,Yala,6,95
+นราธิวาส,Narathiwat,6,96
+บึงกาฬ,buogkan,3,38
