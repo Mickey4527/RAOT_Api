@@ -1,0 +1,17 @@
+[project]
+name = "seed-api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.14.0",
+    "asyncpg>=0.30.0",
+    "fastapi[all,standard]>=0.115.6",
+    "loguru>=0.7.3",
+    "pandas>=2.2.3",
+    "passlib>=1.7.4",
+    "pyjwt>=2.10.1",
+    "robotframework>=7.1.1",
+    "tenacity>=9.0.0",
+]
