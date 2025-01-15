@@ -16,7 +16,7 @@ async def init() -> None:
         except Exception as e:
             logger.error(f"An error occurred: {e}")
             logger.error("Initial data creation failed")
-            exit(1)
+            # exit(1)
 
         
 def main() -> None:

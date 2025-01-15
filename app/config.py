@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str = ""
     POSTGRES_DB: str = ""
+    PREDICT_API_URL: str
     
     FIRST_SUPERUSER: str
     FIRST_SUPERUSER_EMAIL: str

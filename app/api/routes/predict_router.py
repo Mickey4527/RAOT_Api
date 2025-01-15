@@ -5,6 +5,8 @@ from app.api.deps import get_current_user
 from app.schemas import ProductPredictSchema, Result
 from app.services.predict_service import PredictService
 
+from app.config import settings
+
 router = APIRouter(prefix="/predict", tags=["predict"])
 
 @router.post("/product", response_model=Result)
@@ -16,7 +18,7 @@ async def predict_product(user_input: ProductPredictSchema):
     headers = {"Content-Type": "application/json"}
 
     # ส่งคำขอไปยัง API สำหรับการทำนาย
-    url = "http://localhost:8601/v1/models/model_1:predict"
+    url = f'{settings.PREDICT_API_URL}/v1/models/model_1:predict'
     response = requests.post(url, json=payload, headers=headers)
 
     # ตรวจสอบผลลัพธ์จากการทำนาย
