@@ -36,8 +36,8 @@ class PredictService:
         rubbertype_encoder = encoders['rubbertype']
         fer_top_encoder = encoders['fer_top']
         soilgroup_encoder = encoders['soilgroup']
-        pH_top_encoder = encoders['pH_top']
-        pH_low_encoder = encoders['pH_low']
+        ph_top_encoder = encoders['pH_top']
+        ph_low_encoder = encoders['pH_low']
 
         # แปลงข้อมูลหมวดหมู่แล้วคืนค่าในรูปแบบของ user_categorical
         user_categorical = {
@@ -47,8 +47,8 @@ class PredictService:
             "rubbertype_input": rubbertype_encoder.transform([user_input.rubbertype])[0],
             "fer_top_input": fer_top_encoder.transform([user_input.fer_top])[0],
             "soilgroup_input": soilgroup_encoder.transform([user_input.soilgroup])[0],
-            "pH_top_input": pH_top_encoder.transform([user_input.pH_top])[0],
-            "pH_low_input": pH_low_encoder.transform([user_input.pH_low])[0]
+            "pH_top_input": ph_top_encoder.transform([user_input.pH_top])[0],
+            "pH_low_input": ph_low_encoder.transform([user_input.pH_low])[0]
         }
         return user_categorical
     
