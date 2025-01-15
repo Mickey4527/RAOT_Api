@@ -27,20 +27,20 @@ async def get_user_all(session: SessionDep, query: QuerySchema = Depends()):
                 })
             )
 
-        return Result.model_validate({
+        return {
             "success": True,
             "message": "Users retrieved successfully",
             "data": [UserDetailSchema.model_validate(user) for user in result]
-        })
+        }
     
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=Result.model_validate({
+            detail={
                 "success": False,
                 "error_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
                 "message": str(e)
-            })
+            }
         )
     
 @router.post("/login/auth")
