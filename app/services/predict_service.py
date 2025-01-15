@@ -24,7 +24,7 @@ class PredictService:
     async def transform_categorical_product(user_input: ProductPredictSchema):
         # โหลดโมเดลและ encoders
  
-        encode_path = r'../models/encoder_files/model_product/labelencoders.pkl'
+        encode_path = r'D:\DataSet_Project\seed_api\app\models\encoder_files\model_product\labelencoders.pkl'
 
         with open(encode_path, 'rb') as f:
             encoders = pickle.load(f)
@@ -58,7 +58,7 @@ class PredictService:
     async def transform_numeric_product(user_input: ProductPredictSchema):
 
 
-        scaler_path = r'../models/encoder_files/model_product/scaler_numeric.pkl'
+        scaler_path = r'D:\DataSet_Project\seed_api\app\models\encoder_files\model_product\scaler_numeric.pkl'
         with open(scaler_path, 'rb') as f:
             scaler = pickle.load(f)
 
