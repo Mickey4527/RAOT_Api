@@ -26,7 +26,21 @@ class SuitabilityPredictSchema(PredictBaseSchema):
         '6.0 - 8.0']] = Field(None, title="pH ดิน (ด้านบน)")
     
 class ProductPredictSchema(PredictBaseSchema):
-   pass
+    province: str 
+    district: str
+    subdistrict: str
+    rubbertype: str
+    rubbertreecount: int
+    rubberarea: float
+    rubbertreeage: int
+    fer_top: str
+    soilgroup: str
+    pH_top: str
+    pH_low: str
+    rainfall: float
+    avg_temperature: float
+    rainy_days: int
+    avg_humidity: float
 
 class PredictResultSchema(BaseModel):
     pass
