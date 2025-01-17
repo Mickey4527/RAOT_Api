@@ -14,7 +14,7 @@ class Settings(BaseSettings):
             return v
         raise ValueError(v)
 
-    ENVIRONMENT: Literal["local", "staging", "production"] = "local"
+    ENVIRONMENT: Literal["local", "staging", "production", "datasci_test"] = "local"
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str
     SENTRY_DSN: HttpUrl | None = None

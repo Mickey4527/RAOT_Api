@@ -1,6 +1,6 @@
 import pickle
 import numpy as np
-from app.schemas import ProductPredictSchema
+from app.schemas import ProductPredictSchema, SuitabilityPredictSchema
 
 class PredictService:
     # scaler = None
@@ -24,7 +24,7 @@ class PredictService:
     async def transform_categorical_product(user_input: ProductPredictSchema):
         # โหลดโมเดลและ encoders
  
-        encode_path = r'D:\DataSet_Project\seed_api\app\models\encoder_files\model_product\labelencoders.pkl'
+        encode_path = r'D:\DataSet_Project\seed_api\app\services\encoder_files\model_product\labelencoders.pkl'
 
         with open(encode_path, 'rb') as f:
             encoders = pickle.load(f)
@@ -58,7 +58,7 @@ class PredictService:
     async def transform_numeric_product(user_input: ProductPredictSchema):
 
 
-        scaler_path = r'D:\DataSet_Project\seed_api\app\models\encoder_files\model_product\scaler_numeric.pkl'
+        scaler_path = r'D:\DataSet_Project\seed_api\app\services\encoder_files\model_product\scaler_numeric.pkl'
         with open(scaler_path, 'rb') as f:
             scaler = pickle.load(f)
 
@@ -107,6 +107,66 @@ class PredictService:
                     "numeric_input": user_numeric[0]  # ใส่ข้อมูลเชิงตัวเลข
                 }
             ]
+        }
+
+        return data
+    
+
+
+    @staticmethod
+    async def transform_categorical_suitability(user_input: SuitabilityPredictSchema):
+        # โหลดโมเดลและ encoders
+ 
+        encode_path = r'D:\DataSet_Project\seed_api\app\services\encoder_files\model_classify\labelencoders.pkl'
+
+        with open(encode_path, 'rb') as f:
+            encoders = pickle.load(f)
+        
+        # ตัวแปลง LabelEncoder
+        ph_top_encoder = encoders['pH_top']
+
+        # แปลงข้อมูลหมวดหมู่แล้วคืนค่าในรูปแบบของ user_categorical
+        user_pH_top_encoded = ph_top_encoder.transform([user_input.pH_top])[0]
+
+        return user_pH_top_encoded
+    
+
+    @staticmethod
+    # ฟังก์ชันแปลงข้อมูลเชิงตัวเลข
+    async def transform_numeric_suitability(user_input: SuitabilityPredictSchema):
+
+        user_pH_top_encoded = await PredictService.transform_categorical_suitability(user_input)
+
+        scaler_path = r'D:\DataSet_Project\seed_api\app\services\encoder_files\model_classify\scaler_numeric.pkl'
+        with open(scaler_path, 'rb') as f:
+            scaler = pickle.load(f)
+
+
+        user_numeric = np.array([[
+                                    user_pH_top_encoded, 
+                                    user_input.rain_fall_days, 
+                                    user_input.temperature,
+                                    user_input.humidity,
+                                    user_input.rain_fall_days
+                                ]])
+
+        # ทำการปรับสเกลข้อมูล
+        user_numeric_scaler = scaler.transform(user_numeric).tolist()
+
+        # คืนค่าข้อมูลที่ปรับสเกลแล้วเป็น list
+        return user_numeric_scaler
+    
+
+    @staticmethod
+    async def data_predict_suitability(user_input: SuitabilityPredictSchema):
+        # แปลงข้อมูลหมวดหมู่
+        user_numeric_scaler = await PredictService.transform_numeric_suitability(user_input)
+
+        # สร้าง payload สำหรับส่งไปยัง API
+        data = {
+            "signature_name": "serving_default",
+            "instances": [{"keras_tensor_28": user_numeric_scaler[0]}]
+            
         }
 
         return data
