@@ -38,7 +38,6 @@ async def get_user_all(session: SessionDep, query: QuerySchema = Depends()):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
                 "success": False,
-                "error_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
                 "message": str(e)
             }
         )
@@ -71,7 +70,6 @@ async def login_for_access_token(session: SessionDep, form_data: Annotated[OAuth
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=Result.model_validate({
                 "success": False,
-                "error_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
                 "message": str(e)
             })
         )
@@ -103,7 +101,6 @@ async def register_user(session: SessionDep, user_create: UserCreateSchema):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=Result.model_validate({
                 "success": False,
-                "error_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
                 "message": str(e)
             })
         )

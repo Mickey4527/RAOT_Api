@@ -17,7 +17,6 @@ async def get_provinces(session: SessionDep, query: QueryGeographySchema = Depen
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail={
                     "success": False,
-                    "error_code": status.HTTP_404_NOT_FOUND,
                     "message": "Provinces not found"
                 }
             )
@@ -40,7 +39,6 @@ async def get_provinces(session: SessionDep, query: QueryGeographySchema = Depen
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
                 "success": False,
-                "error_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
                 "message": str(e)
             }
         )
@@ -55,7 +53,6 @@ async def create_province(session: SessionDep, data_create: ProvinceSchema):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=Result.model_validate({
                     "success": False,
-                    "error_code": 400,
                     "message": "Province already exists"
                 })
             )
@@ -72,7 +69,6 @@ async def create_province(session: SessionDep, data_create: ProvinceSchema):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=Result.model_validate({
                 "success": False,
-                "error_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
                 "message": str(e)
             })
         )
@@ -86,7 +82,6 @@ async def update_province(session: SessionDep, province: ProvinceSchema, code: i
         if not result:
             return Result.model_validate({
                 "success": False,
-                "error_code": 404,
                 "message": "Province not found"
             })
         
@@ -100,7 +95,6 @@ async def update_province(session: SessionDep, province: ProvinceSchema, code: i
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=Result.model_validate({
                 "success": False,
-                "error_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
                 "message": str(e)
             })
         )
@@ -116,7 +110,6 @@ async def delete_province(session: SessionDep, code: int):
                 status_code=404,
                 detail=Result.model_validate({
                     "success": False,
-                    "error_code": 404,
                     "message": "Province not found"
                 })
             )
@@ -131,7 +124,6 @@ async def delete_province(session: SessionDep, code: int):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=Result.model_validate({
                 "success": False,
-                "error_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
                 "message": str(e)
             })
         )

@@ -14,7 +14,6 @@ async def get_geography_all(session: SessionDep):
         if not result:
             return Result.model_validate({
                 "success": False,
-                "error_code": 404,
                 "message": "Provinces not found"
             })
         
@@ -45,6 +44,5 @@ async def create_geography(geography: BaseGeographySchema, session: SessionDep):
     except Exception as e:
         return Result.model_validate({
             "success": False,
-            "error_code": 500,
             "message": str(e)
         })
