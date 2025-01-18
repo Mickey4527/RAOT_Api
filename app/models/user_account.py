@@ -8,14 +8,14 @@ from app.models.base import SQLModel
 
 def generate_username_from_email(context):
 
-    email = context.get_current_parameters()["email"]
+    email = context.get_current_parameters()["email_primary"]
     return hashlib.sha256(email.encode()).hexdigest()
 
 class UserAccount(SQLModel):
     __tablename__ = "user_account"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    email_primary: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     username: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, default=generate_username_from_email)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     telephone: Mapped[str] = mapped_column(String(10), nullable=False)

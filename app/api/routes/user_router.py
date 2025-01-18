@@ -77,32 +77,32 @@ async def login_for_access_token(session: SessionDep, form_data: Annotated[OAuth
 @router.post("/register", response_model=Result)
 async def register_user(session: SessionDep, user_create: UserCreateSchema):
     try:
-        email_check = await UserService.get_user(session, user_create.email)
+        email_check = await UserService.get_user(session, user_create.email_primary)
         username_check = await UserService.get_user(session, user_create.username)
 
         if email_check or username_check:
-            return HTTPException(
-                status_code=400,
-                detail=Result.model_validate({
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
                     "success": False,
-                    "message": "User already exists"
-                })
+                    "message": "อีเมลหรือชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว"
+                }
             )
         
-        new_user = await UserService.create_user(session, user_create)
-        return Result.model_validate({
+        await UserService.create_user(session, user_create)
+        
+        return {
             "success": True,
             "message": "User created successfully",
-            "data": UserDetailSchema.model_validate(new_user)
-        })
+        }
     
-    except Exception as e:
-        return HTTPException(
+    except SQLAlchemyError as e:
+        raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=Result.model_validate({
+            detail={
                 "success": False,
                 "message": str(e)
-            })
+            }
         )
     
 # @router.get("/create", response_model=Result)

@@ -2,6 +2,7 @@ from sqlalchemy import or_
 from sqlalchemy.sql import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.user_profile import UserProfile
 from app.schemas import UserLoginSchema, UserCreateSchema, UserDetailSchema, QuerySchema
 from app.models import UserAccount
 from app.helpers.password_service import get_password_hash, verify_password, random_password
@@ -27,7 +28,7 @@ class UserService:
 
     @staticmethod
     async def get_user(session: AsyncSession, username: str):
-        stmp = select(UserAccount).filter(or_(UserAccount.email == username, UserAccount.username == username))
+        stmp = select(UserAccount).filter(or_(UserAccount.email_primary == username, UserAccount.username == username))
         result = await session.execute(stmp)
         user = result.scalars().first()
 
@@ -40,7 +41,7 @@ class UserService:
             # TODO: เพิ่ม role in UserRole
             new_user = UserAccount(
                 username=user_create.username,
-                email=user_create.email,
+                email_primary=user_create.email_primary,
                 password_hash=get_password_hash(user_create.password),
                 telephone=user_create.telephone
             )
@@ -48,8 +49,19 @@ class UserService:
             session.add(new_user)
             await session.commit()
             await session.refresh(new_user)
+
+            new_user_profile = UserProfile(
+                user_id=new_user.id,
+                first_name=user_create.first_name,
+                last_name=user_create.last_name,
+                email_secondary=user_create.email_secondary
+            )
+
+            session.add(new_user_profile)
+            await session.commit()
+            await session.refresh(new_user_profile)
             
-            return new_user
+            return True
         
         except Exception as e:
             return False

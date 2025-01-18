@@ -46,9 +46,10 @@ async def init_db(session: AsyncSession):
     if not role and not user:
         user_in = UserCreateSchema(
             username=settings.FIRST_SUPERUSER,
-            email=settings.FIRST_SUPERUSER_EMAIL,
+            email_primary=settings.FIRST_SUPERUSER_EMAIL,
             telephone=settings.FIRST_SUPERUSER_PHONE,
             password=settings.FIRST_SUPERUSER_PASSWORD,
+            first_name=settings.FIRST_SUPERUSER,
         )
         
         await UserService.create_user(session=session, user_create=user_in)
