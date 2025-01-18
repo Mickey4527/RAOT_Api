@@ -65,7 +65,6 @@ async def update_district(session: SessionDep, data_update: DistrictSchema, code
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=Result.model_validate({
                 "success": False,
-                "error_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
                 "message": str(e)
             })
         )
@@ -95,7 +94,6 @@ async def delete_district(session: SessionDep, code: int):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=Result.model_validate({
                 "success": False,
-                "error_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
                 "message": str(e)
             })
         )

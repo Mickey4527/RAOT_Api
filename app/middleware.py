@@ -31,3 +31,35 @@
 #                 raise HTTPException(status_code=403, detail="Insufficient permissions")
 #         response = await call_next(request)
 #         return response
+
+# from fastapi import Request, HTTPException, status
+# from fastapi.responses import JSONResponse
+# from app.services.token_service import TokenService
+# from app.config import settings
+
+
+# async def add_jwt_to_response(request: Request, call_next):
+#     response = await call_next(request)
+
+#     # Check if the response is successful (status code 200)
+#     if response.status_code == 200:
+#         # Read the body of the response
+#         body = b"".join([chunk async for chunk in response.body_iterator])
+#         response_data = body.decode("utf-8")
+
+#         # Create JWT
+#         jwt_token = TokenService().create_jwt_token({"response_data": response_data})
+
+#         # Return a new JSON response with the JWT
+#         return JSONResponse(content=jwt_token)
+
+#     return response
+
+# async def validate_host(request: Request, call_next):
+#     allowed_host = settings.FRONTEND_HOST
+#     origin = request.headers.get("origin")
+
+#     if origin != allowed_host:
+#         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+#     return await call_next(request)

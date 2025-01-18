@@ -7,7 +7,6 @@ class Base(BaseModel):
 
 class Result(Base):
     success: bool = False
-    error_code: Optional[int] = None
     message: str
     data: Optional[Any] = None
 
