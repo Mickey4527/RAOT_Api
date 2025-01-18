@@ -64,15 +64,15 @@ async def predict_suitability(user_input: SuitabilityPredictSchema):
         if response.status_code == 200:
             predicted_suitability = response.json()
             probabilities = predicted_suitability['predictions'][0]  # ความน่าจะเป็นของแต่ละคลาส
-            predicted_class_index = np.argmax(probabilities)  # หา index ของคลาสที่มีความน่าจะเป็นสูงสุด
-            class_labels = ['ปานกลาง', 'เหมาะสม', 'ไม่เหมาะสม']
-            predicted_class_label = class_labels[predicted_class_index]
+            predicted_class_index = int(np.argmax(probabilities))  # หา index ของคลาสที่มีความน่าจะเป็นสูงสุด
+            # class_labels = ['ปานกลาง', 'เหมาะสม', 'ไม่เหมาะสม']
+            # predicted_class_label = class_labels[predicted_class_index]
 
             return {
                 "success": True,
                 "message": "Predicted product successfully",
-                "data": predicted_class_label
-            }    
+                "data": predicted_class_index
+            }    #TODO Create class schema for get value predict
         
         else:
             raise HTTPException(

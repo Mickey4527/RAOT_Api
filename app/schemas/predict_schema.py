@@ -7,11 +7,11 @@ class PredictBaseSchema(BaseSchema):
     pass
 
 class SuitabilityPredictSchema(PredictBaseSchema):
-    rain_fall: float = Field()
+    rainfall: float = Field()
     temperature: float = Field()
     humidity: float = Field()
-    rain_fall_days: int = Field()
-    pH_top: Optional[Literal[
+    rainfall_days: int = Field()
+    ph_top: Optional[Literal[
         '<4.5', 
         '4.5-5.0', 
         '4.5-5.5',
