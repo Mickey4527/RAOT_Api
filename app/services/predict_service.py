@@ -126,7 +126,7 @@ class PredictService:
         ph_top_encoder = encoders['pH_top']
 
         # แปลงข้อมูลหมวดหมู่แล้วคืนค่าในรูปแบบของ user_categorical
-        user_pH_top_encoded = ph_top_encoder.transform([user_input.pH_top])[0]
+        user_pH_top_encoded = ph_top_encoder.transform([user_input.ph_top])[0]
 
         return user_pH_top_encoded
     
@@ -144,10 +144,10 @@ class PredictService:
 
         user_numeric = np.array([[
                                     user_pH_top_encoded, 
-                                    user_input.rain_fall_days, 
+                                    user_input.rainfall, 
                                     user_input.temperature,
                                     user_input.humidity,
-                                    user_input.rain_fall_days
+                                    user_input.rainfall_days
                                 ]])
 
         # ทำการปรับสเกลข้อมูล
