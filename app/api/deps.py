@@ -6,7 +6,8 @@ from fastapi.security import OAuth2PasswordBearer
 from typing import Annotated
 from pydantic import ValidationError
 
-from app.db.main import get_async_engine
+
+from app.db.main import get_async_engine, get_casbin_enforcer
 from app.config import settings
 from app.schemas import TokenData
 from app.services import UserService
@@ -15,8 +16,10 @@ reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/u/login/auth"
 )
 
+async_engine = get_async_engine()
+
 async_session_maker = async_sessionmaker(
-    bind=get_async_engine(),
+    bind=async_engine,
     expire_on_commit=False,
     class_=AsyncSession,
 )
@@ -26,6 +29,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 SessionDep = Annotated[AsyncSession, Depends(get_db)]
+enforcerDep = Annotated[AsyncGenerator, Depends(get_casbin_enforcer)]
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 async def get_current_user(session:SessionDep ,token: TokenDep):

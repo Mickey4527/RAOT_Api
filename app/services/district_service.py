@@ -1,6 +1,7 @@
 from sqlalchemy.sql import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException, status
 
 from app.models import District
 from app.schemas import DistrictCreateSchema
@@ -59,10 +60,13 @@ class DistrictService:
             
         try:
         
-            existing_district = DistrictService._get_district_by_code(session, code)
+            existing_district = await DistrictService._get_district_by_code(session, code)
 
             if not existing_district:
-                return False
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="ไม่พบข้อมูลอำเภอ"
+                )
 
             DistrictService._populate_district_fields(existing_district, district)
 
@@ -72,14 +76,14 @@ class DistrictService:
             return existing_district
         
         except SQLAlchemyError as e:
-            
             session.rollback()
             raise e
+        
     
     @staticmethod
     async def delete_district(session: AsyncSession, code: int):
 
-        existing_district = DistrictService._get_district_by_code(session, code)
+        existing_district = await DistrictService._get_district_by_code(session, code)
 
         if not existing_district:
             return False

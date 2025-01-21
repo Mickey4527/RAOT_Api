@@ -1,7 +1,8 @@
+from enum import IntEnum
 from app.schemas.base import BaseSchema
 
 from typing import Optional, Literal
-from pydantic import Field, BaseModel
+from pydantic import Field
 
 class PredictBaseSchema(BaseSchema):
     pass
@@ -42,5 +43,9 @@ class ProductPredictSchema(PredictBaseSchema):
     rainy_days: int
     avg_humidity: float
 
-class PredictResultSchema(BaseModel):
+class PredictResultSchema(BaseSchema):
     pass
+
+class SuitabilityPredictResultSchema(BaseSchema):
+    suitability: int
+    probabilities: list

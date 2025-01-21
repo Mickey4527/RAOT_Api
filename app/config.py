@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
+    JWT_SUBJECT: str
     EXLUDED_PATHS: list[str] = []
 
     CSV_FILES_IMPORT: list[dict] = []

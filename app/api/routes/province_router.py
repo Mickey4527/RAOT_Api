@@ -5,7 +5,7 @@ from app.api.deps import get_current_user, SessionDep
 from app.schemas import Result, ProvinceDetailSchema, ProvinceSchema, QueryGeographySchema
 from app.services import ProvinceService
 
-router = APIRouter(prefix="/province", tags=["province"])
+router = APIRouter(prefix="/province", tags=["province"], dependencies=[Depends(get_current_user)])
 
 @router.get("/", response_model=Result)
 async def get_provinces(session: SessionDep, query: QueryGeographySchema = Depends(QueryGeographySchema)):

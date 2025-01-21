@@ -20,9 +20,9 @@ class DistrictSchema(BaseGeographySchema):
 class ProvinceDetailSchema(ProvinceSchema):
     districts: Optional[List[DistrictSchema]] = None
 
-class DistrictCreateSchema(DistrictSchema):
+class DistrictCreateSchema(BaseGeographySchema):
     province_id: int
-class SubDistrictCreateSchema(SubDistrictSchema):
+class SubDistrictCreateSchema(BaseGeographySchema):
     district_id: int
 
 class QueryGeographySchema(QuerySchema):

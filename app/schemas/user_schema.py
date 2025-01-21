@@ -12,20 +12,20 @@ class UserSchema(BaseSchema):
             raise ValueError('Invalid email format')
         return value
     
-    
 class UserLoginSchema(UserSchema):
     password: str = Field(..., min_length=5)
 
 class UserDetailSchema(UserSchema):
-    first_name: str
-    last_name: str = ''
+    firstname: str
+    lastname: str = ''
     email_primary: EmailStr
-    email_secondary: EmailStr = None
     telephone: str
+    user_roles: list[str] = []
 
 class UserCreateSchema(UserLoginSchema, UserDetailSchema):
     is_auto_generate_password: bool = False
     is_change_password_first_login: bool = False
+    email_secondary: EmailStr = None
 
     @model_validator(mode='before')
     @classmethod
@@ -38,7 +38,8 @@ class UserCreateSchema(UserLoginSchema, UserDetailSchema):
     @classmethod
     def generate_username(cls, values):
         email = values.get("email_primary")
-        if email:
+        username = values.get("username")
+        if email and not username:
             values["username"] = email.split('@')[0]
         return values
 

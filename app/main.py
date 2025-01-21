@@ -1,8 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.authentication import AuthenticationMiddleware
 
 from app.config import settings
 from app.api.main import api_router
+from app.middleware import CasbinMiddleware
+from app.test_rbca import JWTAuthBackend
+
 
 def get_app() -> FastAPI:
     app = FastAPI(
@@ -21,6 +25,10 @@ def get_app() -> FastAPI:
             allow_headers=["*"],
         )
 
+    app.add_middleware(CasbinMiddleware)
+    app.add_middleware(AuthenticationMiddleware, backend=JWTAuthBackend())
+
+    
     return app
 
 app = get_app()

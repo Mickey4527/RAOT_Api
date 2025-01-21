@@ -1,8 +1,8 @@
-"""table first
+"""update 3
 
-Revision ID: e23879915f67
+Revision ID: 5b53c9f840b3
 Revises: 
-Create Date: 2025-01-12 12:01:18.020016
+Create Date: 2025-01-20 17:34:52.866436
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'e23879915f67'
+revision: str = '5b53c9f840b3'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -37,6 +37,25 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('Permission',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('name', sa.String(length=50), nullable=False),
+    sa.Column('description', sa.String(length=255), nullable=True),
+    sa.Column('api_endpoint', sa.String(length=255), nullable=False),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('name')
+    )
+    op.create_table('Role',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('name', sa.String(length=50), nullable=False),
+    sa.Column('description', sa.String(length=255), nullable=True),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('name')
+    )
     op.create_table('RubberType',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('name', sa.String(), nullable=False),
@@ -53,34 +72,9 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('permission',
+    op.create_table('UserAccount',
     sa.Column('id', sa.UUID(), nullable=False),
-    sa.Column('permission_type', sa.String(length=255), nullable=False),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('resource',
-    sa.Column('id', sa.UUID(), nullable=False),
-    sa.Column('resource_name', sa.String(length=255), nullable=False),
-    sa.Column('resource_description', sa.String(length=255), nullable=False),
-    sa.Column('is_active', sa.Boolean(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('role',
-    sa.Column('id', sa.UUID(), nullable=False),
-    sa.Column('role_name', sa.String(length=255), nullable=False),
-    sa.Column('role_description', sa.String(length=255), nullable=False),
-    sa.Column('is_active', sa.Boolean(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('user_account',
-    sa.Column('id', sa.UUID(), nullable=False),
-    sa.Column('email', sa.String(length=255), nullable=False),
+    sa.Column('email_primary', sa.String(length=255), nullable=False),
     sa.Column('username', sa.String(length=255), nullable=False),
     sa.Column('password_hash', sa.String(length=255), nullable=False),
     sa.Column('telephone', sa.String(length=10), nullable=False),
@@ -90,7 +84,20 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('username')
     )
-    op.create_index(op.f('ix_user_account_email'), 'user_account', ['email'], unique=True)
+    op.create_index(op.f('ix_UserAccount_email_primary'), 'UserAccount', ['email_primary'], unique=True)
+    op.create_table('casbin_rule',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('ptype', sa.String(length=255), nullable=True),
+    sa.Column('v0', sa.String(length=255), nullable=True),
+    sa.Column('v1', sa.String(length=255), nullable=True),
+    sa.Column('v2', sa.String(length=255), nullable=True),
+    sa.Column('v3', sa.String(length=255), nullable=True),
+    sa.Column('v4', sa.String(length=255), nullable=True),
+    sa.Column('v5', sa.String(length=255), nullable=True),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('Province',
     sa.Column('code', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('name_th', sa.String(length=255), nullable=False),
@@ -103,37 +110,36 @@ def upgrade() -> None:
     sa.UniqueConstraint('name_en'),
     sa.UniqueConstraint('name_th')
     )
-    op.create_table('role_permission',
-    sa.Column('id', sa.UUID(), nullable=False),
-    sa.Column('resource_id', sa.UUID(), nullable=False),
-    sa.Column('role_id', sa.UUID(), nullable=False),
-    sa.Column('permission_id', sa.UUID(), nullable=False),
+    op.create_table('RolePermission',
+    sa.Column('role_id', sa.Integer(), nullable=False),
+    sa.Column('permission_id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['permission_id'], ['permission.id'], ),
-    sa.ForeignKeyConstraint(['resource_id'], ['resource.id'], ),
-    sa.ForeignKeyConstraint(['role_id'], ['role.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.ForeignKeyConstraint(['permission_id'], ['Permission.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['role_id'], ['Role.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('role_id', 'permission_id'),
+    sa.UniqueConstraint('role_id', 'permission_id', name='uq_role_permission')
     )
-    op.create_table('user_profile',
+    op.create_table('UserProfile',
     sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('email_secondary', sa.String(length=255), nullable=True),
     sa.Column('firstname', sa.String(length=255), nullable=False),
-    sa.Column('lastname', sa.String(length=255), nullable=False),
+    sa.Column('lastname', sa.String(length=255), nullable=True),
     sa.Column('user_id', sa.UUID(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['user_account.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['UserAccount.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('user_role',
-    sa.Column('id', sa.UUID(), nullable=False),
-    sa.Column('role_id', sa.UUID(), nullable=False),
+    op.create_table('UserRole',
     sa.Column('user_id', sa.UUID(), nullable=False),
+    sa.Column('role_id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['role_id'], ['role.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['user_account.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.ForeignKeyConstraint(['role_id'], ['Role.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['user_id'], ['UserAccount.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('user_id', 'role_id'),
+    sa.UniqueConstraint('user_id', 'role_id', name='uq_user_role')
     )
     op.create_table('District',
     sa.Column('code', sa.Integer(), autoincrement=True, nullable=False),
@@ -213,17 +219,17 @@ def downgrade() -> None:
     op.drop_table('SubDistrict')
     op.drop_table('WeatherGeography')
     op.drop_table('District')
-    op.drop_table('user_role')
-    op.drop_table('user_profile')
-    op.drop_table('role_permission')
+    op.drop_table('UserRole')
+    op.drop_table('UserProfile')
+    op.drop_table('RolePermission')
     op.drop_table('Province')
-    op.drop_index(op.f('ix_user_account_email'), table_name='user_account')
-    op.drop_table('user_account')
-    op.drop_table('role')
-    op.drop_table('resource')
-    op.drop_table('permission')
+    op.drop_table('casbin_rule')
+    op.drop_index(op.f('ix_UserAccount_email_primary'), table_name='UserAccount')
+    op.drop_table('UserAccount')
     op.drop_table('SoilType')
     op.drop_table('RubberType')
+    op.drop_table('Role')
+    op.drop_table('Permission')
     op.drop_table('NumberTest')
     op.drop_table('Geography')
     # ### end Alembic commands ###

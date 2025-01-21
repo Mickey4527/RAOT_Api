@@ -1,11 +1,15 @@
+import casbin
+from fastapi import HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy.sql import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.models.user_profile import UserProfile
 from app.schemas import UserLoginSchema, UserCreateSchema, UserDetailSchema, QuerySchema
 from app.models import UserAccount
 from app.helpers.password_service import get_password_hash, verify_password, random_password
+from app.services.role_service import RoleService
 
 class UserService:
     
@@ -32,13 +36,39 @@ class UserService:
         result = await session.execute(stmp)
         user = result.scalars().first()
 
-        return user 
+        return user
     
     @staticmethod
-    async def create_user(session: AsyncSession, user_create: UserCreateSchema):
+    async def get_user_profile(session: AsyncSession, user_id: str):
+        try:
+            stmp = select(UserProfile).where(UserProfile.user_id == user_id)
+            result = await session.execute(stmp)
+            user_profile = result.scalars().first()
+
+            return user_profile
+        
+        except SQLAlchemyError as e:
+            raise SQLAlchemyError(str(e))
+    
+    @staticmethod
+    async def create_user(session: AsyncSession, enforcer: casbin.AsyncEnforcer, user_create: UserCreateSchema):
 
         try:
-            # TODO: เพิ่ม role in UserRole
+
+            existing_user = await session.execute(
+                select(UserAccount).where(
+                    (UserAccount.email_primary == user_create.email_primary) |
+                    (UserAccount.username == user_create.username)
+                )
+            )
+            existing_user = existing_user.scalar()
+
+            if existing_user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="มีผู้ใช้งานนี้อยู่ในระบบแล้ว"
+                )
+
             new_user = UserAccount(
                 username=user_create.username,
                 email_primary=user_create.email_primary,
@@ -50,21 +80,32 @@ class UserService:
             await session.commit()
             await session.refresh(new_user)
 
+            role = await RoleService.define_user_role(session,enforcer, new_user.id, user_create.user_roles)
+
+            if not role:
+                raise ValueError("ไม่สามารถกำหนดสิทธิ์ผู้ใช้งานได้")
+
             new_user_profile = UserProfile(
                 user_id=new_user.id,
-                first_name=user_create.first_name,
-                last_name=user_create.last_name,
+                firstname=user_create.firstname,
+                lastname=user_create.lastname,
                 email_secondary=user_create.email_secondary
             )
 
             session.add(new_user_profile)
             await session.commit()
             await session.refresh(new_user_profile)
-            
-            return True
+                
+            return new_user
+
+        except SQLAlchemyError as e:
+            await session.rollback()
+            raise SQLAlchemyError(str(e))
         
-        except Exception as e:
-            return False
+        except ValueError as e:
+            await session.rollback()
+            raise ValueError(str(e))
+        
     
     @staticmethod
     async def authenticate_user(session: AsyncSession, user_auth: UserLoginSchema):
@@ -72,10 +113,19 @@ class UserService:
         user = await UserService.get_user(session, user_auth.username)
         
         if not user:
-            return False
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="บัญชีผู้ใช้งานไม่ถูกต้อง1"
+            )
+        
         if not verify_password(user_auth.password, user.password_hash):
-            return False
-        return UserDetailSchema.model_validate(user)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="รหัสผ่านไม่ถูกต้อง2"
+            )
+
+        return user
+    
     
     @staticmethod
     async def update_user(session: AsyncSession, user_id: str, user: UserDetailSchema):

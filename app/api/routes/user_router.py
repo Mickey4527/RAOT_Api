@@ -6,8 +6,9 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from app.schemas import Result, UserLoginSchema, UserCreateSchema, Token, UserDetailSchema, QuerySchema
 from app.services import UserService, TokenService
-from app.api.deps import SessionDep, get_current_user
+from app.api.deps import SessionDep, get_current_user, enforcerDep
 from app.config import settings
+from app.services.role_service import RoleService
 
 router = APIRouter(prefix="/u", tags=["user"])
 
@@ -46,64 +47,56 @@ async def get_user_all(session: SessionDep, query: QuerySchema = Depends()):
 async def login_for_access_token(session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
    
     try:
-
         user = await UserService.authenticate_user(session, form_data)
+
+        user_profile = await UserService.get_user_profile(session, user.id)
+        roles = await RoleService.get_roles_by_user_id(session, user.id)
         
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail={
-                    "success": False,
-                    "message": "Incorrect username or password"
-                }
-            )
+        user_data = {**user.__dict__, **user_profile.__dict__, "user_roles": roles}
+        user_detail = UserDetailSchema.model_validate(user_data)
         
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = TokenService.create_access_token(
-            subject=user, expires_delta=access_token_expires
+            subject=user.id, 
+            expires_delta=access_token_expires,
+            **user_detail.model_dump()
         )
 
-        return Token(access_token=access_token, token_type="bearer", expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-        
-    except SQLAlchemyError as e:
+        return Token(
+            access_token=access_token, 
+            token_type="bearer", 
+            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    except HTTPException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={"success": False, "message": e.detail}
+        )
+    
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=Result.model_validate({
-                "success": False,
-                "message": str(e)
-            })
+            detail={"success": False, "message": "เกิดข้อผิดพลาด : " + str(e)}
         )
     
 @router.post("/register", response_model=Result)
-async def register_user(session: SessionDep, user_create: UserCreateSchema):
+async def register_user(session: SessionDep, enforcer: enforcerDep, user_create: UserCreateSchema):
     try:
-        email_check = await UserService.get_user(session, user_create.email_primary)
-        username_check = await UserService.get_user(session, user_create.username)
-
-        if email_check or username_check:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={
-                    "success": False,
-                    "message": "อีเมลหรือชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว"
-                }
-            )
-        
-        await UserService.create_user(session, user_create)
-        
-        return {
-            "success": True,
-            "message": "User created successfully",
-        }
+        user = await UserService.create_user(session, enforcer=enforcer, user_create=user_create)
+        return {"success": True, "message": "User created successfully"}
     
-    except SQLAlchemyError as e:
+    except HTTPException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={"success": False, "message": e.detail}
+        )
+    
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "success": False,
-                "message": str(e)
-            }
+            detail={"success": False, "message": "เกิดข้อผิดพลาด : " + str(e)}
         )
+    
     
 # @router.get("/create", response_model=Result)
 # async def create_user(session: SessionDep):
