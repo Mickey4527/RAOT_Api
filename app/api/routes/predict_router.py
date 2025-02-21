@@ -1,94 +1,75 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-import numpy as np
-import requests
+from fastapi import APIRouter, Depends, Request, status
 
-from app.api.deps import get_current_user
-from app.schemas import ProductPredictSchema, SuitabilityPredictSchema, Result
+from app.schemas import ProductPredictSchema, SuitablePredictSchema, Result
+from app.services.district_service import DistrictService
 from app.services.predict_service import PredictService
-
-from app.config import settings
+from app.api.deps import SessionDep, get_trace_id
+from app.services.province_service import ProvinceService
+from app.services.sub_district_service import SubDistrictService
+from app.utilities.app_exceptions import APIException, DuplicateResourceException, ResourceNotFoundException, SQLProcessException, ServerProcessException
 
 router = APIRouter(prefix="/predict", tags=["predict"])
+result = Result()
 
 @router.post("/product", response_model=Result)
-async def predict_product(user_input: ProductPredictSchema):
+async def predict_product(
+    req: Request, 
+    session: SessionDep, 
+    user_input: ProductPredictSchema
+):
+    province_service = ProvinceService(session)
+    district_service = DistrictService(session)
+    sub_district_service = SubDistrictService(session)
+    predict_service = PredictService(session)
+
+    trace_id = get_trace_id(req)
 
     try:
 
-        payload = await PredictService.data_predict_product(user_input)
-        headers = {"Content-Type": "application/json"}
+        province = await province_service._get_province_by_code(user_input.province)
+        district = await district_service._get_district_by_code(user_input.district)
+        subdistrict = await sub_district_service._get_sub_district_by_code(user_input.subdistrict)
 
-        url = f'{settings.PREDICT_API_URL}/v1/models/model_1:predict'
-        response = requests.post(url, json=payload, headers=headers)
-
-        if response.status_code == 200:
-            predicted_yield = response.json()
-
-            return {
-                "success": True,
-                "message": "Predicted product successfully",
-                "data": predicted_yield
-            }
-        
-        else:
-            raise HTTPException(
-                status_code=response.status_code,
-                detail={
-                    "success": False,
-                    "message": "Predicted product failed"
-                }
+        if not province or not district or not subdistrict:
+            raise APIException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="กรุณากรอกข้อมูลให้ถูกต้อง",
+                trace_id=trace_id
             )
         
-    except Exception as e:
+        user_input.district = district.name_th
+        user_input.province = province.name_th
+        user_input.subdistrict = subdistrict.name_th
 
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "success": False,
-                "message": str(e)
-            }
-       )
+        payload = await predict_service.get_product(user_input)
 
+        return Result(
+            success=True,
+            data=payload,
+            trace_id=trace_id
+        )
+    
+    except (ServerProcessException, SQLProcessException) as e:
+        raise APIException(status_code=e.status_code, message=e.message, trace_id=trace_id, data=e.data)
+    
 
 @router.post("/suitability", response_model=Result)
-async def predict_suitability(user_input: SuitabilityPredictSchema):
+async def predict_suitability(
+    session: SessionDep,
+    req: Request, 
+    user_input: SuitablePredictSchema):
+
+    predict_Service = PredictService(session)
+    trace_id = get_trace_id(req)
 
     try:
+        payload = await predict_Service.get_suitable(user_input)
 
-        payload = await PredictService.data_predict_suitability(user_input)
-        headers = {"Content-Type": "application/json"}
-
-        url = f'{settings.PREDICT_API_URL}/v1/models/model_2:predict'
-        response = requests.post(url, json=payload, headers=headers)
-
-        if response.status_code == 200:
-            predicted_suitability = response.json()
-            probabilities = predicted_suitability['predictions'][0]  # ความน่าจะเป็นของแต่ละคลาส
-            predicted_class_index = int(np.argmax(probabilities))  # หา index ของคลาสที่มีความน่าจะเป็นสูงสุด
-            # class_labels = ['ปานกลาง', 'เหมาะสม', 'ไม่เหมาะสม']
-            # predicted_class_label = class_labels[predicted_class_index]
-
-            return {
-                "success": True,
-                "message": "Predicted product successfully",
-                "data": predicted_class_index
-            }    #TODO Create class schema for get value predict
-        
-        else:
-            raise HTTPException(
-                status_code=response.status_code,
-                detail={
-                    "success": False,
-                    "message": "Predicted product failed"
-                }
-            )
-        
-    except Exception as e:
-
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "success": False,
-                "message": str(e)
-            }
-       )
+        return Result(
+            success=True,
+            data=payload,
+            trace_id=trace_id
+        )
+     
+    except (ServerProcessException, SQLProcessException) as e:
+        raise APIException(status_code=e.status_code, message=e.message, trace_id=trace_id, data=e.data)

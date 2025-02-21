@@ -1,6 +1,6 @@
 import hashlib
 import uuid
-from sqlalchemy import Boolean, String, ForeignKey
+from sqlalchemy import Boolean, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 

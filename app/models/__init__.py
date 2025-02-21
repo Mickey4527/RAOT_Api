@@ -9,7 +9,6 @@ from app.models.permission import Permission
 from app.models.role_permission import RolePermission
 from app.models.geography import Geography
 from app.models.role import Role
-from app.models.private_model.number import NumberTest
 from app.models.rubber_farm import RubberFarm
 from app.models.soil_geography import SoilGeography
 from app.models.weather_geography import WeatherGeography
@@ -17,7 +16,6 @@ from app.models.rubber_type import RubberType
 from app.models.soil_type import SoilType
 from app.models.casbin_rule import CasbinRule
 
-from app.config import settings
 
 __all__ = [
     "Province",
@@ -39,6 +37,3 @@ __all__ = [
     "SoilType",
     "CasbinRule"
 ]
-
-if settings.ENVIRONMENT == "local":
-    __all__.append("NumberTest")

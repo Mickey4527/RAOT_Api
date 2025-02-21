@@ -17,6 +17,6 @@ class SubDistrict(SQLModel):
     district_id: Mapped[int] = mapped_column(Integer, ForeignKey("District.code"), nullable=False)
 
     # Relationships
-    districts: Mapped["District"] = relationship("District", back_populates="sub_districts")
-    soil_geographies: Mapped[List["SoilGeography"]] = relationship("SoilGeography", back_populates="sub_district")
-    rubber_farms: Mapped[List["RubberFarm"]] = relationship("RubberFarm", back_populates="sub_district")
+    districts: Mapped["District"] = relationship("District", back_populates="sub_districts") # type: ignore
+    soil_geographies: Mapped[List["SoilGeography"]] = relationship("SoilGeography", back_populates="sub_district") # type: ignore
+    rubber_farms: Mapped[List["RubberFarm"]] = relationship("RubberFarm", back_populates="sub_district") # type: ignore

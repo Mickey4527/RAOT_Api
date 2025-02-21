@@ -1,13 +1,13 @@
 from enum import IntEnum
-from app.schemas.base import BaseSchema
+from app.schemas.base import Base
 
 from typing import Optional, Literal
 from pydantic import Field
 
-class PredictBaseSchema(BaseSchema):
+class PredictBaseSchema(Base):
     pass
 
-class SuitabilityPredictSchema(PredictBaseSchema):
+class SuitablePredictSchema(PredictBaseSchema):
     rainfall: float = Field()
     temperature: float = Field()
     humidity: float = Field()
@@ -27,25 +27,25 @@ class SuitabilityPredictSchema(PredictBaseSchema):
         '6.0-8.0']] = Field(None, title="pH ดิน (ด้านบน)")
     
 class ProductPredictSchema(PredictBaseSchema):
-    province: str 
-    district: str
-    subdistrict: str
-    rubbertype: str
-    rubbertreecount: int
-    rubberarea: float
-    rubbertreeage: int
+    province: int
+    district: int
+    subdistrict: int
+    rubber_type: str
+    rubber_tree_count: int
+    rubber_area: float
+    rubber_tree_age: int
     fer_top: str
-    soilgroup: str
-    pH_top: str
-    pH_low: str
+    soil_group: str
+    ph_top: str
+    ph_low: str
     rainfall: float
-    avg_temperature: float
-    rainy_days: int
-    avg_humidity: float
+    temperature: float
+    rainfall_days: int
+    humidity: float
 
-class PredictResultSchema(BaseSchema):
+class PredictResultSchema(Base):
     pass
 
-class SuitabilityPredictResultSchema(BaseSchema):
+class SuitabilityPredictResultSchema(Base):
     suitability: int
     probabilities: list

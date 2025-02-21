@@ -5,12 +5,17 @@ from fastapi import HTTPException, status
 
 from app.models import District
 from app.schemas import DistrictCreateSchema
+from app.utilities.app_exceptions import DuplicateResourceException, ResourceNotFoundException, SQLProcessException, ServerProcessException
 
 class DistrictService:
 
-    @staticmethod
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
     def _populate_district_fields(
-            sub_district: District, data: DistrictCreateSchema
+            self,
+            sub_district: District, 
+            data: DistrictCreateSchema
         ) -> None:
         
         """
@@ -23,72 +28,113 @@ class DistrictService:
         sub_district.province_id = data.province_id
 
 
-    @staticmethod
-    async def _get_district_by_code(session: AsyncSession, code: int):
+
+    async def _get_district_by_code(self, code: int):
+        """
+        Retrieve district data from the database based on the specified district code.
+        """
         
         stmp = select(District).where(District.code == code)
-        result = await session.execute(stmp)
+        result = await self.session.execute(stmp)
 
         return result.scalars().first()
     
     
-    @staticmethod
-    async def create_district(session: AsyncSession, district: DistrictCreateSchema):
+    async def create_district(self, district: DistrictCreateSchema):
+        """
+        Create district data.
+        """
             
         try:
-            existing_district = await DistrictService._get_district_by_code(session, district.code)
+            existing_district = await self._get_district_by_code(district.code)
 
             if existing_district:
-                return False
+
+                raise DuplicateResourceException(
+                    message="อำเภอนี้มีอยู่ในระบบแล้ว"
+                )
             
-            new_district = DistrictService._populate_district_fields(District(), district)
+            new_district = self._populate_district_fields(District(), district)
             
-            session.add(new_district)
-            await session.commit()
-            await session.refresh(new_district)
+            self.session.add(new_district)
+            await self.session.commit()
+            await self.session.refresh(new_district)
 
             return new_district
         
-        except SQLAlchemyError as e:
-
-            session.rollback()
+        except DuplicateResourceException as e:
             raise e
+        
+        except SQLAlchemyError as e:
+            self.session.rollback()
+            raise SQLProcessException(event=e)
+        
+        except Exception as e:
+            self.session.rollback()
+            raise ServerProcessException(message="เกิดข้อผิดพลาดที่ไม่รู้จัก")
     
 
-    @staticmethod
-    async def update_district(session: AsyncSession, district: DistrictCreateSchema, code: int):
+    async def update_district(self, district: DistrictCreateSchema, code: int):
+        """
+            Update district data.
+        """
             
         try:
         
-            existing_district = await DistrictService._get_district_by_code(session, code)
+            existing_district = await DistrictService._get_district_by_code(code)
 
             if not existing_district:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="ไม่พบข้อมูลอำเภอ"
+                raise ResourceNotFoundException(
+                    message="ไม่พบข้อมูลอำเภอที่ต้องการแก้ไข"
                 )
 
             DistrictService._populate_district_fields(existing_district, district)
 
-            await session.commit()
-            await session.refresh(existing_district)
+            await self.session.commit()
+            await self.session.refresh(existing_district)
 
             return existing_district
         
         except SQLAlchemyError as e:
-            session.rollback()
+            self.session.rollback()
+            raise SQLProcessException(event=e)
+        
+        except ResourceNotFoundException as e:
+            self.session.rollback()
             raise e
         
+        except Exception as e:
+            self.session.rollback()
+            raise ServerProcessException(message="เกิดข้อผิดพลาดที่ไม่รู้จัก")
+        
     
-    @staticmethod
-    async def delete_district(session: AsyncSession, code: int):
+    async def delete_district(self, code: int):
+        """
+            Delete district data.
+        """
 
-        existing_district = await DistrictService._get_district_by_code(session, code)
+        try:
 
-        if not existing_district:
-            return False
+            existing_district = await DistrictService._get_district_by_code(self, code)
 
-        session.delete(existing_district)
-        await session.commit()
+            if not existing_district:
+                raise ResourceNotFoundException(
+                    message="ไม่พบข้อมูลอำเภอที่ต้องการลบ"
+                )
 
-        return True
+            self.session.delete(existing_district)
+            await self.session.commit()
+
+            return True
+        
+        except SQLAlchemyError as e:
+            self.session.rollback()
+            raise SQLProcessException(event=e)
+        
+        except ResourceNotFoundException as e:
+            self.session.rollback()
+            raise e
+        
+        except Exception as e:
+            self.session.rollback()
+            raise ServerProcessException(message="เกิดข้อผิดพลาดที่ไม่รู้จัก")

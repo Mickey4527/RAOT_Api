@@ -1,9 +1,9 @@
 import random
 import string
 from pydantic import Field, EmailStr, field_validator, model_validator
-from app.schemas.base import BaseSchema
+from app.schemas.base import Base
 
-class UserSchema(BaseSchema):
+class UserSchema(Base):
     username: str = Field(..., min_length=3, max_length=50)
 
     @field_validator('username')
@@ -16,8 +16,8 @@ class UserLoginSchema(UserSchema):
     password: str = Field(..., min_length=5)
 
 class UserDetailSchema(UserSchema):
-    firstname: str
-    lastname: str = ''
+    firstname: str | None = None
+    lastname: str | None = None
     email_primary: EmailStr
     telephone: str
     user_roles: list[str] = []
