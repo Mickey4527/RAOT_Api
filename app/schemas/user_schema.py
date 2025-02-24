@@ -1,5 +1,6 @@
 import random
 import string
+import uuid
 from pydantic import Field, EmailStr, field_validator, model_validator
 from app.schemas.base import Base
 
@@ -21,6 +22,10 @@ class UserDetailSchema(UserSchema):
     email_primary: EmailStr
     telephone: str
     user_roles: list[str] = []
+
+class UserViewSchema(UserDetailSchema):
+    id: uuid.UUID
+    is_active: bool
 
 class UserCreateSchema(UserLoginSchema, UserDetailSchema):
     is_auto_generate_password: bool = False

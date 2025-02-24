@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from app.schemas.base import QuerySchema
 from app.schemas.result import Result
-from app.schemas.user_schema import UserCreateSchema, UserDetailSchema
+from app.schemas.user_schema import UserCreateSchema, UserViewSchema
 from app.services.user_service import UserService
 from app.api.deps import get_trace_id, SessionDep, enforcerDep
 from app.utilities.app_exceptions import APIException, DuplicateResourceException, InvalidAuthorizationException, InvalidOutputException, ResourceNotFoundException, SQLProcessException, ServerProcessException
@@ -30,12 +30,17 @@ async def get_user_all(
         users = await user_service.get_users(query = query)
 
         users = [
-                user_service._jsonify_user(user)
+                user_service._jsonify_view_user(user)
                 for user in users
             ]
-
-
-        result.data = [UserDetailSchema.model_validate(user) for user in users]
+        
+        result.data = {
+            "users": [UserViewSchema.model_validate(user) for user in users],
+            "total": len(users),
+            "limit": query.limit,
+            "offset": query.offset
+        }
+        
         result.success = True
 
         return result
@@ -88,6 +93,40 @@ async def add_user(
             data=e.data
         )
     
+@router.delete("/delete/{user_id}", response_model=Result)
+async def delete_user(
+    req: Request,
+    session: SessionDep,
+    enforcer: enforcerDep,
+    user_id: str):
+    
+    user_service = UserService(session)
+    trace_id = get_trace_id(req)
+
+    try:
+        # await user_service.delete_user(enforcer=enforcer, user_id=user_id)
+
+        result.trace_id = trace_id
+        result.success = True
+
+        return result
+    
+    except (ResourceNotFoundException, InvalidAuthorizationException) as e:
+        raise APIException(
+            status_code=e.status_code,
+            message=e.message,
+            trace_id=trace_id,
+            data=e.data
+        )
+    except (ServerProcessException, SQLProcessException) as e:
+        raise APIException(
+            status_code=e.status_code,
+            message=e.message,
+            trace_id=trace_id,
+            data=e.data
+        )
+    
+
 @router.post("/login/auth")
 async def login_for_access_token(
     session: SessionDep,

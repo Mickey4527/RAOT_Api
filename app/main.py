@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.authentication import AuthenticationMiddleware
-from starlette.authentication import AuthenticationBackend
 
 from app.core.auth import JWTAuthBackend
 from app.core.config import settings
@@ -12,6 +11,7 @@ from app.utilities.app_config import auth_exception_handler, exception_handler
 from app.utilities.app_exceptions import APIException
 
 def get_app() -> FastAPI:
+    
     """
     Return the FastAPI application
     """
@@ -28,8 +28,8 @@ def get_app() -> FastAPI:
     app.add_middleware(TraceIDMiddleware)  # Logging Trace ID
     app.add_middleware(CasbinMiddleware)  # Authorization Middleware
     app.add_middleware(AuthenticationMiddleware,
-                        backend=JWTAuthBackend(), 
-                        on_error=auth_exception_handler)
+                       backend=JWTAuthBackend(), 
+                       on_error=auth_exception_handler)
     
 
     if settings.all_cors_origins:

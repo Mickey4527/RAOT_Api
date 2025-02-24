@@ -40,6 +40,18 @@ class UserService:
             "user_roles": [role.name for role in user.roles],
         }
     
+    def _jsonify_view_user(self, user):
+        return {
+            "id": user.id,
+            "username": user.username,
+            "email_primary": user.email_primary,
+            "telephone": user.telephone,
+            "firstname": user.profile.firstname if user.profile else None,
+            "lastname": user.profile.lastname if user.profile else None,
+            "user_roles": [role.name for role in user.roles],
+            "is_active": user.is_active
+        }
+    
     async def get_users(self, query: QuerySchema):
         """
             ดึงข้อมูลผู้ใช้ทั้งหมดจากฐานข้อมูล \n

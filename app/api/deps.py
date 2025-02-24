@@ -40,11 +40,13 @@ def get_casbin_dependency() -> AsyncGenerator:
 enforcerDep = Annotated[AsyncGenerator, Depends(get_casbin_dependency)]
 
 def get_trace_id(request: Request) -> str | None:
+
     """
     Get the trace ID from the request.
     """
     trace_id = getattr(request.state, "trace_id", None)
     logger.debug(f"Retrieved trace ID: {trace_id}")
+
     return trace_id
 
 reusable_oauth2 = OAuth2PasswordBearer(
@@ -53,6 +55,7 @@ reusable_oauth2 = OAuth2PasswordBearer(
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 async def get_current_user(session: SessionDep, token: TokenDep, req: Request):
+    
     trace_id = get_trace_id(req)
     logger.debug(f"Authenticating user with trace ID: {trace_id}")
 
