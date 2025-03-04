@@ -11,7 +11,9 @@ seed_api.egg-info/
 htmlcov
 .cache
 
+
 # Environments python
 .venv/
 env/
-app/logging/*
+app/bin/log/*
+
