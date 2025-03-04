@@ -22,7 +22,7 @@ async def init() -> None:
         
 def main() -> None:
     asyncio.run(init())
-    os.system('cls' if os.name == 'nt' else 'clear')
+    # os.system('cls' if os.name == 'nt' else 'clear')
     logging.info("Initial data created successfully")
 
 

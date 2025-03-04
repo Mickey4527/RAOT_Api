@@ -1,3 +1,4 @@
+import logging
 import os
 import pickle
 import requests
@@ -9,6 +10,8 @@ from app.core.config import settings
 from app.schemas.predict_schema import ProductPredictSchema
 from app.utilities.app_exceptions import ServerProcessException
 
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 class PredictService:
 
     def __init__(self, session: AsyncSession):
@@ -54,9 +57,7 @@ class PredictService:
                     {
                         "district_input": [user_cat["district_input"]],
                         "soilgroup_input": [user_cat["soilgroup_input"]],
-                        "fer_top_input": [user_cat["fer_top_input"]],
                         "subdistrict_input": [user_cat["subdistrict_input"]],
-                        "pH_low_input": [user_cat["pH_low_input"]],
                         "rubbertype_input": [user_cat["rubbertype_input"]],
                         "province_input": [user_cat["province_input"]],
                         "pH_top_input": [user_cat["pH_top_input"]],
@@ -64,7 +65,7 @@ class PredictService:
                     }
                 ]
             }
-            response = self.get_url_predict(url='/v1/models/model_1:predict', payload=payload)
+            response = self.get_url_predict(url='/v1/models/model_product/versions/3:predict', payload=payload)
 
             return response
         
@@ -82,10 +83,10 @@ class PredictService:
 
             payload = {
                 "signature_name": "serving_default",
-                "instances": [{"keras_tensor_28": numeric_scaler[0]}]
+                "instances": [{"keras_tensor": numeric_scaler[0]}]
             }
 
-            response = self.get_url_predict(url='/v1/models/model_2:predict', payload=payload)
+            response = self.get_url_predict(url='/v1/models/model_suitability/versions/3:predict', payload=payload)
 
             response = response['predictions'][0]
             predicted_class_index = int(np.argmax(response))
@@ -95,12 +96,13 @@ class PredictService:
             predicted_class_label = class_labels[predicted_class_index]
 
             predicted_result = {
-                "suitability": predicted_class_label
-            }
+                    "suitability": predicted_class_label
+                }
 
             return predicted_result
-        
-        except Exception:
+            
+        except Exception as e:
+            logger.error("Unknown error: %s", e)
             raise ServerProcessException(message="เกิดข้อผิดพลาดที่ไม่รู้จัก")
 
 
@@ -109,10 +111,7 @@ class PredictService:
         """
         แปลงข้อมูลที่ได้ให้อยู่ในรูปแบบการทำนายความเหมาะสม และส่งค่ากลับ
         """
-        encoders = self.load_encoder('model_classify/labelencoders.pkl')
-        
-        with open(encoders, 'rb') as f:
-            encoders = pickle.load(f)
+        encoders = self.load_encoder('model_classify/labelencoders_3.pkl')
         
         ph_top_encoder = encoders['pH_top']
         user_pH_top_encoded = ph_top_encoder.transform([data.ph_top])[0]
@@ -126,17 +125,15 @@ class PredictService:
 
         user_pH_top_encoded = self.transform_cat_suitable(data)
 
-        scaler = self.load_encoder('model_classify/scaler_numeric.pkl')
-
-        with open(scaler, 'rb') as f:
-            scaler = pickle.load(f)
+        scaler = self.load_encoder('model_classify/scaler_numeric_3.pkl')
 
         user_numeric = np.array([[
                                     user_pH_top_encoded, 
                                     data.rainfall, 
                                     data.temperature,
                                     data.humidity,
-                                    data.rainfall_days
+                                    data.rainfall_days,
+                                    data.slope,
                                 ]])
         
         numeric_scaler = scaler.transform(user_numeric).tolist()
@@ -147,29 +144,22 @@ class PredictService:
         """
         แปลงข้อมูลที่ได้ให้อยู่ในรูปแบบการทำนายผลผลิต และส่งค่ากลับ
         """
-        encoders = self.load_encoder('model_product/labelencoders.pkl')
-        
-        with open(encoders, 'rb') as f:
-            encoders = pickle.load(f)
+        encoders = self.load_encoder('model_product/labelencoders_3.pkl')
         
         province_encoder = encoders['province']
         district_encoder = encoders['district']
         subdistrict_encoder = encoders['subdistrict']
         rubbertype_encoder = encoders['rubbertype']
-        fer_top_encoder = encoders['fer_top']
         soilgroup_encoder = encoders['soilgroup']
         ph_top_encoder = encoders['pH_top']
-        ph_low_encoder = encoders['pH_low']
 
         user_cat = {
             "province_input": province_encoder.transform([data.province])[0],
             "district_input": district_encoder.transform([data.district])[0],
             "subdistrict_input": subdistrict_encoder.transform([data.subdistrict])[0],
             "rubbertype_input": rubbertype_encoder.transform([data.rubber_type])[0],
-            "fer_top_input": fer_top_encoder.transform([data.fer_top])[0],
             "soilgroup_input": soilgroup_encoder.transform([data.soil_group])[0],
             "pH_top_input": ph_top_encoder.transform([data.ph_top])[0],
-            "pH_low_input": ph_low_encoder.transform([data.ph_low])[0]
         }
 
         return user_cat
@@ -178,10 +168,6 @@ class PredictService:
         """
         แปลงข้อมูลที่ได้ให้อยู่ในรูปแบบของข้อมูลที่เป็นตัวเลข และส่งค่ากลับ
         """
-        scaler = self.load_encoder('model_product/scaler_numeric.pkl')
-
-        with open(scaler, 'rb') as f:
-            scaler = pickle.load(f)
 
         user_numeric = np.array([[data.rubber_area,
                                 data.rubber_tree_count,
@@ -191,6 +177,4 @@ class PredictService:
                                 data.rainfall_days,
                                 data.humidity]])
 
-        user_numeric_scaler = scaler.transform(user_numeric).tolist()
-
-        return user_numeric_scaler
+        return user_numeric

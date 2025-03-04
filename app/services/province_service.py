@@ -10,6 +10,7 @@ from app.schemas import QueryGeoSchema, ProvinceCreateSchema
 from app.utilities.app_exceptions import DuplicateResourceException, ResourceNotFoundException, SQLProcessException, ServerProcessException
 from app.I18n.load_laguage import get_lang_content
 
+logger = logging.getLogger(__name__)
 class ProvinceService:
 
     def __init__(self, session: AsyncSession):
@@ -148,11 +149,12 @@ class ProvinceService:
         
         except ResourceNotFoundException as e:
             await self.session.rollback()
+            logger.warning(f"Province with code {code} not found.")
             raise e
         
         except SQLAlchemyError as e:
             await self.session.rollback()
-
+            logger.error(f"SQL error while deleting province {code}: {e}")
             raise SQLProcessException(
                 event=e,
                 message=self.t.get("SQLServerQueryError"),
@@ -160,6 +162,7 @@ class ProvinceService:
         
         except Exception as e:
             await self.session.rollback()
+            logger.critical(f"Unexpected error in delete_province: {e}", exc_info=True)
             raise ServerProcessException(message=self.t.get("InternalServerError"))
         
 

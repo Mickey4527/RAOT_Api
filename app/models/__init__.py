@@ -15,6 +15,7 @@ from app.models.weather_geography import WeatherGeography
 from app.models.rubber_type import RubberType
 from app.models.soil_type import SoilType
 from app.models.casbin_rule import CasbinRule
+from app.models.module import Module
 
 
 __all__ = [
@@ -35,5 +36,6 @@ __all__ = [
     "WeatherGeography",
     "RubberType",
     "SoilType",
-    "CasbinRule"
+    "CasbinRule",
+    "Module",
 ]

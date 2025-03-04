@@ -33,11 +33,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 SessionDep = Annotated[AsyncSession, Depends(get_db)]
 
-def get_casbin_dependency() -> AsyncGenerator:
-    logger.debug("Getting Casbin dependency")
-    return Depends(get_casbin_enforcer)
-
-enforcerDep = Annotated[AsyncGenerator, Depends(get_casbin_dependency)]
+enforcerDep = Annotated[AsyncGenerator, Depends(get_casbin_enforcer)]
 
 def get_trace_id(request: Request) -> str | None:
 
@@ -74,7 +70,7 @@ async def get_current_user(session: SessionDep, token: TokenDep, req: Request):
         logger.error(f"Token validation error: {str(e)}")
         raise APIException(status_code=400, message="Could not validate credentials", trace_id=trace_id)
 
-    user = await UserService.get_user(session, token_data.username)
+    user = await UserService(session).get_user_by_username(token_data.username)
     logger.debug(f"User lookup result: {user}")
 
     if user is None:

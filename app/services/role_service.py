@@ -15,6 +15,33 @@ class RoleService:
         self.session = session
         self.t = get_lang_content().get("ErrorMessage")
 
+    async def get_roles(self):
+        """
+            ดึงข้อมูลบทบาททั้งหมดจากฐานข้อมูล \n
+            Retrieve all role data from the database.
+
+            #### Returns
+                list => ข้อมูลบทบาททั้งหมดจากฐานข้อมูล \n
+                All role data from the database.
+
+        """
+
+        try:
+            stmp = select(Role)
+            result = await self.session.execute(stmp)
+            roles = result.scalars().all()
+
+            return roles
+            
+        except SQLAlchemyError as e:
+            raise SQLProcessException(
+                event=e,
+                message=self.t.get("SQLServerQueryError"),
+            )
+        
+        except Exception as e:
+            raise ServerProcessException(message=self.t.get("InternalServerError"))
+
     async def get_role_by_name(self, name: str):
         """
             ดึงข้อมูลบทบาทจากฐานข้อมูลตามชื่อบทบาทที่กำหนด \n
@@ -66,10 +93,10 @@ class RoleService:
 
         """
 
-        try:
-            user_roles = []
+        # try:
+        user_roles = []
 
-            for role in roles:
+        for role in roles:
                     role_id = await self.get_role_by_name(role)
 
                     if not role_id:
@@ -81,23 +108,24 @@ class RoleService:
                     self.session.add(new_user_role)
                     user_roles.append(new_user_role)
 
+                    print(user_id, role)
                     await enforcer.add_grouping_policy(str(user_id), role)
 
             
-        except ResourceNotFoundException as e:
-            await self.session.rollback()
-            raise e
+        # except ResourceNotFoundException as e:
+        #     await self.session.rollback()
+        #     raise e
         
-        except SQLAlchemyError as e:
-            await self.session.rollback()
-            raise SQLProcessException(
-                event=e,
-                message=self.t.get("SQLServerQueryError"),
-            )
+        # except SQLAlchemyError as e:
+        #     await self.session.rollback()
+        #     raise SQLProcessException(
+        #         event=e,
+        #         message=self.t.get("SQLServerQueryError"),
+        #     )
 
-        except Exception as e:
-            await self.session.rollback()
-            raise ServerProcessException(message=self.t.get("InternalServerError"))
+        # except Exception as e:
+        #     await self.session.rollback()
+        #     raise ServerProcessException(message=self.t.get("InternalServerError"))
         
     async def create_role(self, role_create: Role):
 

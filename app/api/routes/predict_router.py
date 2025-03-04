@@ -3,12 +3,12 @@ from fastapi import APIRouter, Depends, Request, status
 from app.schemas import ProductPredictSchema, SuitablePredictSchema, Result
 from app.services.district_service import DistrictService
 from app.services.predict_service import PredictService
-from app.api.deps import SessionDep, get_trace_id
+from app.api.deps import SessionDep, get_current_user, get_trace_id
 from app.services.province_service import ProvinceService
 from app.services.sub_district_service import SubDistrictService
 from app.utilities.app_exceptions import APIException, DuplicateResourceException, ResourceNotFoundException, SQLProcessException, ServerProcessException
 
-router = APIRouter(prefix="/predict", tags=["predict"])
+router = APIRouter(prefix="/predict", tags=["predict"], dependencies=[Depends(get_current_user)])
 result = Result()
 
 @router.post("/product", response_model=Result)
@@ -41,7 +41,7 @@ async def predict_product(
         user_input.province = province.name_th
         user_input.subdistrict = subdistrict.name_th
 
-        payload = await predict_service.get_product(user_input)
+        payload = predict_service.get_product(user_input)
 
         return Result(
             success=True,
@@ -54,16 +54,16 @@ async def predict_product(
     
 
 @router.post("/suitability", response_model=Result)
-async def predict_suitability(
+def predict_suitability(
     session: SessionDep,
     req: Request, 
     user_input: SuitablePredictSchema):
 
-    predict_Service = PredictService(session)
+    predict_service = PredictService(session)
     trace_id = get_trace_id(req)
 
     try:
-        payload = await predict_Service.get_suitable(user_input)
+        payload = predict_service.get_suitable(user_input)
 
         return Result(
             success=True,

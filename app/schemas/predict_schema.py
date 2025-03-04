@@ -13,7 +13,7 @@ class SuitablePredictSchema(PredictBaseSchema):
     humidity: float = Field()
     rainfall_days: int = Field()
     ph_top: Optional[Literal[
-        '<4.5', 
+        '<4.0',
         '4.5-5.0', 
         '4.5-5.5',
         '4.5-6.0',
@@ -25,6 +25,7 @@ class SuitablePredictSchema(PredictBaseSchema):
         '5.5-8.0',
         '6.0-7.0',
         '6.0-8.0']] = Field(None, title="pH ดิน (ด้านบน)")
+    slope: int = Field()
     
 class ProductPredictSchema(PredictBaseSchema):
     province: int
@@ -34,10 +35,8 @@ class ProductPredictSchema(PredictBaseSchema):
     rubber_tree_count: int
     rubber_area: float
     rubber_tree_age: int
-    fer_top: str
     soil_group: str
     ph_top: str
-    ph_low: str
     rainfall: float
     temperature: float
     rainfall_days: int
