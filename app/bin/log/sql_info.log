@@ -17955,3 +17955,34 @@ FROM "UserProfile"
 WHERE "UserProfile".user_id IN ($1::UUID)
 2025-03-04 17:57:35 | 29a73d51-e511-466e-9bf7-09054c806a40 | INFO | [cached since 2.023e+04s ago] (UUID('4273279d-ba01-4579-ac6a-37ec3ffdcabc'),)
 2025-03-04 17:57:36 | 29a73d51-e511-466e-9bf7-09054c806a40 | INFO | ROLLBACK
+2025-03-04 18:33:45 | N/A | INFO | select pg_catalog.version()
+2025-03-04 18:33:45 | N/A | INFO | [raw sql] ()
+2025-03-04 18:33:45 | N/A | INFO | select current_schema()
+2025-03-04 18:33:45 | N/A | INFO | [raw sql] ()
+2025-03-04 18:33:45 | N/A | INFO | show standard_conforming_strings
+2025-03-04 18:33:45 | N/A | INFO | [raw sql] ()
+2025-03-04 18:33:45 | N/A | INFO | BEGIN (implicit)
+2025-03-04 18:33:45 | N/A | INFO | 
+        SELECT tablename
+        FROM pg_tables
+        WHERE schemaname = 'public' AND tablename != 'alembic_version';
+        
+2025-03-04 18:33:45 | N/A | INFO | [generated in 0.00134s] ()
+2025-03-04 18:33:45 | N/A | INFO | TRUNCATE TABLE "Province", "Geography", "Module", "SubDistrict", "casbin_rule", "Role", "Permission", "RolePermission", "UserAccount", "UserProfile", "UserRole", "RubberType", "RubberFarm", "District", "WeatherGeography", "SoilType", "SoilGeography" CASCADE;
+2025-03-04 18:33:45 | N/A | INFO | [generated in 0.00061s] ()
+2025-03-04 18:33:45 | N/A | INFO | COMMIT
+2025-03-04 18:33:45 | N/A | INFO | select pg_catalog.version()
+2025-03-04 18:33:45 | N/A | INFO | [raw sql] ()
+2025-03-04 18:33:45 | N/A | INFO | select current_schema()
+2025-03-04 18:33:45 | N/A | INFO | [raw sql] ()
+2025-03-04 18:33:45 | N/A | INFO | show standard_conforming_strings
+2025-03-04 18:33:45 | N/A | INFO | [raw sql] ()
+2025-03-04 18:33:45 | N/A | INFO | BEGIN (implicit)
+2025-03-04 18:33:45 | N/A | INFO | SELECT casbin_rule.id, casbin_rule.ptype, casbin_rule.v0, casbin_rule.v1, casbin_rule.v2, casbin_rule.v3, casbin_rule.v4, casbin_rule.v5 
+FROM casbin_rule
+2025-03-04 18:33:45 | N/A | INFO | [generated in 0.00065s] ()
+2025-03-04 18:33:45 | N/A | INFO | COMMIT
+2025-03-04 18:33:45 | N/A | INFO | BEGIN (implicit)
+2025-03-04 18:33:45 | N/A | INFO | DELETE FROM casbin_rule
+2025-03-04 18:33:45 | N/A | INFO | [generated in 0.00052s] ()
+2025-03-04 18:33:45 | N/A | INFO | COMMIT
