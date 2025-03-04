@@ -13,4 +13,5 @@ class Role(SQLModel):
     description: Mapped[str] = mapped_column(String(255), nullable=True)
 
     users = relationship("UserAccount", secondary="UserRole", back_populates="roles")
+    role_permissions = relationship("RolePermission", back_populates="role")
     permissions = relationship("Permission", secondary="RolePermission", back_populates="roles")

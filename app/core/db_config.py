@@ -70,16 +70,19 @@ async def init_db(session: AsyncSession):
             await enforcer.add_policy("*", "/api/v1/user/login/auth", "*")
             await enforcer.add_policy("*", "/api/v1/common/*", "*")
             await enforcer.add_policy("user", "/api/*", "GET")
+            await enforcer.add_policy("academic", "/api/*", "*")
             await enforcer.save_policy()
             await file_service.import_csv_files(csv_files_import=settings.CSV_FILES_IMPORT)
     
         logging.info("Database initialized")
 
-    except SQLAlchemyError:
+    except SQLAlchemyError as e:
+        logging.debug(f"An error occurred: {e}")
         logging.error("Database initialization failed")
         raise
 
-    except Exception:
+    except Exception as e:
+        logging.debug(f"An error occurred: {e}")
         logging.error("Database initialization failed")
         raise
 

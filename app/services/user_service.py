@@ -176,58 +176,58 @@ class UserService:
             สร้างผู้ใช้ใหม่ \n
             Create a new user
         """
-        logger.debug("Creating user: %s", user_create)
-        try:
-            existing_user = await self.session.execute(
-                    select(UserAccount).where(
-                        (UserAccount.email_primary == user_create.email_primary) |
-                        (UserAccount.username == user_create.username)
+        # logger.debug("Creating user: %s", user_create)
+        # try:
+        existing_user = await self.session.execute(
+                        select(UserAccount).where(
+                            (UserAccount.email_primary == user_create.email_primary) |
+                            (UserAccount.username == user_create.username)
+                        )
                     )
-                )
 
-            existing_user = existing_user.scalar()
+        existing_user = existing_user.scalar()
 
-            if existing_user:
-                logger.debug("Duplicate user found")
-                raise DuplicateResourceException(message=self.t.get("Conflict"))
-                
-            new_user = UserAccount(
-                    username=user_create.username,
-                    email_primary=user_create.email_primary,
-                    password_hash=get_password_hash(user_create.password),
-                    telephone=user_create.telephone
-                )
-            
-            self.session.add(new_user)
-            await self.session.flush()
-
-            await RoleService(self.session).define_user_role(enforcer=enforcer, user_id=new_user.id, roles=user_create.user_roles)
-
-            await self.create_user_profile(user_id=new_user.id, user_profile=user_create)
-
-            await self.session.commit()
-            await self.session.refresh(new_user)
+        if existing_user:
+                    logger.debug("Duplicate user found")
+                    raise DuplicateResourceException(message=self.t.get("Conflict"))
                     
-            logger.debug("User created successfully")
-            return new_user
+        new_user = UserAccount(
+                        username=user_create.username,
+                        email_primary=user_create.email_primary,
+                        password_hash=get_password_hash(user_create.password),
+                        telephone=user_create.telephone
+                    )
+                
+        self.session.add(new_user)
+        await self.session.flush()
+
+        await RoleService(self.session).define_user_role(enforcer=enforcer, user_id=new_user.id, roles=user_create.user_roles)
+
+        await self.create_user_profile(user_id=new_user.id, user_profile=user_create)
+
+        await self.session.commit()
+        await self.session.refresh(new_user)
+                        
+        logger.debug("User created successfully")
+        return new_user
         
-        except (DuplicateResourceException, ResourceNotFoundException) as e:
-            await self.session.rollback()
-            logger.error("Error creating user: %s", e)
-            raise e
+        # except (DuplicateResourceException, ResourceNotFoundException) as e:
+        #     await self.session.rollback()
+        #     logger.error("Error creating user: %s", e)
+        #     raise e
         
-        except SQLAlchemyError as e:
-            await self.session.rollback()
-            logger.error("SQLAlchemy error: %s", e)
-            raise SQLProcessException(
-                event=e,
-                message="เกิดข้อผิดพลาดในการสร้างผู้ใช้",
-            )
+        # except SQLAlchemyError as e:
+        #     await self.session.rollback()
+        #     logger.error("SQLAlchemy error: %s", e)
+        #     raise SQLProcessException(
+        #         event=e,
+        #         message="เกิดข้อผิดพลาดในการสร้างผู้ใช้",
+        #     )
         
-        except Exception as e:
-            await self.session.rollback()
-            logger.error("Unknown error: %s", e)
-            raise ServerProcessException(message="เกิดข้อผิดพลาดที่ไม่รู้จัก")
+        # except Exception as e:
+        #     await self.session.rollback()
+        #     logger.error("Unknown error: %s", e)
+        #     raise ServerProcessException(message="เกิดข้อผิดพลาดที่ไม่รู้จัก")
         
 
     async def create_user_profile(self, user_id: UUID, user_profile: UserProfile):

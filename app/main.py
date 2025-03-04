@@ -26,10 +26,10 @@ def get_app() -> FastAPI:
     app.add_exception_handler(APIException, exception_handler)
 
     app.add_middleware(TraceIDMiddleware)  # Logging Trace ID
-    app.add_middleware(CasbinMiddleware)  # Authorization Middleware
-    app.add_middleware(AuthenticationMiddleware,
-                       backend=JWTAuthBackend(), 
-                       on_error=auth_exception_handler)
+    # app.add_middleware(CasbinMiddleware)  # Authorization Middleware
+    # app.add_middleware(AuthenticationMiddleware,
+    #                    backend=JWTAuthBackend(), 
+    #                    on_error=auth_exception_handler)
     
 
     if settings.all_cors_origins:
