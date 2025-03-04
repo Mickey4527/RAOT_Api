@@ -4,12 +4,18 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.models import SubDistrict
 from app.schemas import SubDistrictCreateSchema
+from app.utilities.app_exceptions import DuplicateResourceException, ResourceNotFoundException, SQLProcessException, ServerProcessException
 
 class SubDistrictService:
 
-    @staticmethod
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+
     def _populate_sub_district_fields(
-            sub_district: SubDistrict, data: SubDistrictCreateSchema
+            self,
+            sub_district: SubDistrict, 
+            data: SubDistrictCreateSchema
         ) -> None:
         
         """
@@ -23,78 +29,145 @@ class SubDistrictService:
         sub_district.zip_code = data.zip_code 
 
 
-    @staticmethod
-    async def _get_sub_district_by_code(session: AsyncSession, code: int):
-        
-        stmp = select(SubDistrict).where(SubDistrict.code == code)
-        result = await session.execute(stmp)
 
-        return result.scalars().first()
-    
-
-    @staticmethod
-    async def create_sub_district(session: AsyncSession, sub_district: SubDistrictCreateSchema):
+    async def _get_sub_district_by_code(self, code: int):
         
         try:
-            existing_sub_district = await SubDistrictService._get_sub_district_by_code(session, sub_district.code)
+            stmp = select(SubDistrict).where(SubDistrict.code == code)
+            result = await self.session.execute(stmp)
+
+            return result.scalars().first()
+        
+        except SQLAlchemyError as e:
+            raise SQLProcessException(
+                event=e,
+                message="เกิดข้อผิดพลาดในการดึงข้อมูลตำบลจากรหัส"
+            )
+        
+        except Exception as e:
+
+            raise ServerProcessException(
+                message="เกิดข้อผิดพลาดที่ไม่รู้จัก"
+            )
+
+
+    async def create_sub_district(self, sub_district: SubDistrictCreateSchema):
+        """
+        Create sub district data.
+        """
+        
+        try:
+            existing_sub_district = await SubDistrictService._get_sub_district_by_code(sub_district.code)
             
 
             if existing_sub_district:
-                return False
+                raise DuplicateResourceException(
+                    message="ตำบลนี้มีอยู่ในระบบแล้ว"
+                )
             
             new_sub_district = SubDistrictService._populate_sub_district_fields(SubDistrict(), sub_district)
 
-            session.add(new_sub_district)
-            await session.commit()
-            await session.refresh(new_sub_district)
+            self.session.add(new_sub_district)
+            await self.session.commit()
+            await self.session.refresh(new_sub_district)
 
             return new_sub_district
         
-        except SQLAlchemyError as e:
-
-            session.rollback()
+        except DuplicateResourceException as e:
             raise e
         
+        except SQLAlchemyError as e:
+
+            self.session.rollback()
+            raise SQLProcessException(
+                event=e,
+                message="เกิดข้อผิดพลาดในการสร้างข้อมูลตำบล"
+            )
+        
+        except Exception as e:
+            self.session.rollback()
+            raise ServerProcessException(
+                message="เกิดข้อผิดพลาดที่ไม่รู้จัก"
+            )
+        
         finally:
-            
-            session.close()
+            self.session.close()
     
 
-    @staticmethod
-    async def update_sub_district(session: AsyncSession, update_sub_district: SubDistrictCreateSchema, code: int):
+    async def update_sub_district(self, update_sub_district: SubDistrictCreateSchema, code: int):
+        """
+        Update sub district data.
+        """
             
         try:
 
-            existing_sub_district = await SubDistrictService._get_sub_district_by_code(session, code)
+            existing_sub_district = await self._get_sub_district_by_code(code)
 
             if not existing_sub_district:
-                return False
+                raise ResourceNotFoundException(
+                    message="ไม่พบข้อมูลตำบลที่ต้องการแก้ไข"
+                )
             
-            new_sub_district = SubDistrictService._populate_sub_district_fields(existing_sub_district, update_sub_district)
+            new_sub_district = self._populate_sub_district_fields(existing_sub_district, update_sub_district)
 
-            await session.commit()
-            await session.refresh(new_sub_district)
+            await self.session.commit()
+            await self.session.refresh(new_sub_district)
 
             return existing_sub_district
         
-        except SQLAlchemyError as e:
-
-            session.rollback()
+        except ResourceNotFoundException as e:
             raise e
         
+        except SQLAlchemyError as e:
+
+            self.session.rollback()
+            raise SQLProcessException(
+                event=e,
+                message="เกิดข้อผิดพลาดในการแก้ไขข้อมูลตำบล"
+            )
+        
+        except Exception as e:
+            self.session.rollback()
+            raise ServerProcessException(
+                message="เกิดข้อผิดพลาดที่ไม่รู้จัก"
+            )
+        
         finally:
+            self.session.close()
+    
 
-            session.close()
+    async def delete_sub_district(self, code: int):
+        """
+        Delete sub district data.
+        """
 
-    @staticmethod
-    async def delete_sub_district(session: AsyncSession, code: int):
+        try:
 
-        existing_sub_district = await SubDistrictService._get_sub_district_by_code(session, code)
+            existing_sub_district = await SubDistrictService._get_sub_district_by_code(code)
 
-        if not existing_sub_district:
-            return False
+            if not existing_sub_district:
+                raise ResourceNotFoundException(
+                    message="ไม่พบข้อมูลตำบลที่ต้องการลบ"
+                )
 
-        session.delete(existing_sub_district)
-        await session.commit()
+            self.session.delete(existing_sub_district)
+            await self.session.commit()
 
-        return True
+            return True
+        
+        except ResourceNotFoundException as e:
+            raise e
+        
+        except SQLAlchemyError as e:
+            
+            self.session.rollback()
+            raise SQLProcessException(
+                event=e,
+                message="เกิดข้อผิดพลาดในการลบข้อมูลตำบล"
+            )
+        
+        except Exception as e:
+            self.session.rollback()
+            raise ServerProcessException(
+                message="เกิดข้อผิดพลาดที่ไม่รู้จัก"
+            )

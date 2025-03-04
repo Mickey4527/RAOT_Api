@@ -1,36 +1,157 @@
-import pickle
 import os
+import pickle
+import requests
 import numpy as np
-from app.schemas import ProductPredictSchema, SuitabilityPredictSchema
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.schemas import SuitablePredictSchema
+from app.core.config import settings
+from app.schemas.predict_schema import ProductPredictSchema
+from app.utilities.app_exceptions import ServerProcessException
 
 class PredictService:
-    # scaler = None
-    # encoders = None
 
-    # @classmethod
-    # def load_encoders(cls):
-    #     if cls.scaler is None or cls.encoders is None:
-    #         scaler_path = r'../models/encoder_files/model_product/scaler_numeric.pkl'
-    #         encode_path = r'../models/encoder_files/model_product/labelencoders.pkl'
-            
-    #         # โหลด scaler
-    #         with open(scaler_path, 'rb') as f:
-    #             cls.scaler = pickle.load(f)
+    def __init__(self, session: AsyncSession):
+        self.session = session
 
-    #         # โหลด encoders
-    #         with open(encode_path, 'rb') as f:
-    #             cls.encoders = pickle.load(f)
-
-    @staticmethod
-    async def transform_categorical_product(user_input: ProductPredictSchema):
-        # โหลดโมเดลและ encoders
-
-        encode_path = os.path.join(os.path.dirname(__file__), 'encoder_files/model_product/labelencoders.pkl')
-
+    def get_url_predict(self, url, payload, headers = {"Content-Type": "application/json"}):
+        """
+        รับ url และ payload จากผู้ใช้และส่งไปยัง API ทำนายผลผลิต \n
+        Get the url and payload from the user and send it to the prediction API.
+        """
+        payload = requests.post(url=f'{settings.PREDICT_API_URL}{url}', json=payload, headers=headers)
+        return payload.json()
+    
+    def load_encoder(self, encode_path: str):
+        """
+        โหลดไฟล์ encoder จากไดเรกทอรี \n
+        Load the encoder file from the directory.
+        """
+        
+        encode_path = os.path.join(os.path.dirname(__file__), 'encoder_files/', encode_path)
+        
         with open(encode_path, 'rb') as f:
             encoders = pickle.load(f)
+        return encoders
+    
+    def get_product(self, data: ProductPredictSchema):
         
-        # ตัวแปลง LabelEncoder
+        """
+        บริการทำนายผลผลิตของพืชที่ต้องการปลูก
+        """
+
+        try:
+
+            user_cat = self.transform_cat_product(data)
+            user_numeric = self.transform_num_product(data)
+
+            user_cat = { key: [int(value)] for key, value in user_cat.items()}
+            user_numeric = user_numeric.tolist()
+
+            payload = {
+                "signature_name": "serving_default",
+                "instances": [
+                    {
+                        "district_input": [user_cat["district_input"]],
+                        "soilgroup_input": [user_cat["soilgroup_input"]],
+                        "fer_top_input": [user_cat["fer_top_input"]],
+                        "subdistrict_input": [user_cat["subdistrict_input"]],
+                        "pH_low_input": [user_cat["pH_low_input"]],
+                        "rubbertype_input": [user_cat["rubbertype_input"]],
+                        "province_input": [user_cat["province_input"]],
+                        "pH_top_input": [user_cat["pH_top_input"]],
+                        "numeric_input": user_numeric[0]
+                    }
+                ]
+            }
+            response = self.get_url_predict(url='/v1/models/model_1:predict', payload=payload)
+
+            return response
+        
+        except Exception:
+            raise ServerProcessException(message="เกิดข้อผิดพลาดที่ไม่รู้จัก")
+        
+    def get_suitable(self, data: SuitablePredictSchema):
+        """
+        บริการทำนายความเหมาะสมของพืชที่ต้องการปลูก
+        """
+
+        try:
+
+            numeric_scaler = self.transform_num_suitable(data)
+
+            payload = {
+                "signature_name": "serving_default",
+                "instances": [{"keras_tensor_28": numeric_scaler[0]}]
+            }
+
+            response = self.get_url_predict(url='/v1/models/model_2:predict', payload=payload)
+
+            response = response['predictions'][0]
+            predicted_class_index = int(np.argmax(response))
+
+
+            class_labels = [1, 2, 0]
+            predicted_class_label = class_labels[predicted_class_index]
+
+            predicted_result = {
+                "suitability": predicted_class_label
+            }
+
+            return predicted_result
+        
+        except Exception:
+            raise ServerProcessException(message="เกิดข้อผิดพลาดที่ไม่รู้จัก")
+
+
+    
+    def transform_cat_suitable(self, data: SuitablePredictSchema):
+        """
+        แปลงข้อมูลที่ได้ให้อยู่ในรูปแบบการทำนายความเหมาะสม และส่งค่ากลับ
+        """
+        encoders = self.load_encoder('model_classify/labelencoders.pkl')
+        
+        with open(encoders, 'rb') as f:
+            encoders = pickle.load(f)
+        
+        ph_top_encoder = encoders['pH_top']
+        user_pH_top_encoded = ph_top_encoder.transform([data.ph_top])[0]
+
+        return user_pH_top_encoded
+    
+    def transform_num_suitable(self, data: SuitablePredictSchema):
+        """
+        แปลงข้อมูลที่ได้ให้อยู่ในรูปแบบของข้อมูลที่เป็นตัวเลข และส่งค่ากลับ
+        """
+
+        user_pH_top_encoded = self.transform_cat_suitable(data)
+
+        scaler = self.load_encoder('model_classify/scaler_numeric.pkl')
+
+        with open(scaler, 'rb') as f:
+            scaler = pickle.load(f)
+
+        user_numeric = np.array([[
+                                    user_pH_top_encoded, 
+                                    data.rainfall, 
+                                    data.temperature,
+                                    data.humidity,
+                                    data.rainfall_days
+                                ]])
+        
+        numeric_scaler = scaler.transform(user_numeric).tolist()
+
+        return numeric_scaler
+    
+    def transform_cat_product(self, data: ProductPredictSchema):
+        """
+        แปลงข้อมูลที่ได้ให้อยู่ในรูปแบบการทำนายผลผลิต และส่งค่ากลับ
+        """
+        encoders = self.load_encoder('model_product/labelencoders.pkl')
+        
+        with open(encoders, 'rb') as f:
+            encoders = pickle.load(f)
+        
         province_encoder = encoders['province']
         district_encoder = encoders['district']
         subdistrict_encoder = encoders['subdistrict']
@@ -40,134 +161,36 @@ class PredictService:
         ph_top_encoder = encoders['pH_top']
         ph_low_encoder = encoders['pH_low']
 
-        # แปลงข้อมูลหมวดหมู่แล้วคืนค่าในรูปแบบของ user_categorical
-        user_categorical = {
-            "province_input": province_encoder.transform([user_input.province])[0],
-            "district_input": district_encoder.transform([user_input.district])[0],
-            "subdistrict_input": subdistrict_encoder.transform([user_input.subdistrict])[0],
-            "rubbertype_input": rubbertype_encoder.transform([user_input.rubbertype])[0],
-            "fer_top_input": fer_top_encoder.transform([user_input.fer_top])[0],
-            "soilgroup_input": soilgroup_encoder.transform([user_input.soilgroup])[0],
-            "pH_top_input": ph_top_encoder.transform([user_input.pH_top])[0],
-            "pH_low_input": ph_low_encoder.transform([user_input.pH_low])[0]
-        }
-        return user_categorical
-    
-
-    @staticmethod
-    # ฟังก์ชันแปลงข้อมูลเชิงตัวเลข
-    async def transform_numeric_product(user_input: ProductPredictSchema):
-
-
-        scaler_path = os.path.join(os.path.dirname(__file__), 'encoder_files/model_product/scaler_numeric.pkl')
-        with open(scaler_path, 'rb') as f:
-            scaler = pickle.load(f)
-
-
-        # แปลงข้อมูลเชิงตัวเลข
-        user_numeric = np.array([[user_input.rubberarea,
-                                user_input.rubbertreecount,
-                                user_input.rubbertreeage,
-                                user_input.rainfall,
-                                user_input.avg_temperature,
-                                user_input.rainy_days,
-                                user_input.avg_humidity]])
-
-        # ทำการปรับสเกลข้อมูล
-        user_numeric_scaler = scaler.transform(user_numeric)
-
-        # คืนค่าข้อมูลที่ปรับสเกลแล้วเป็น list
-        return user_numeric_scaler
-
-
-    @staticmethod
-    async def data_predict_product(user_input: ProductPredictSchema):
-        # แปลงข้อมูลหมวดหมู่
-        user_categorical = await PredictService.transform_categorical_product(user_input)
-
-        # แปลงข้อมูลเชิงตัวเลข
-        user_numeric = await PredictService.transform_numeric_product(user_input)
-
-        # แปลงข้อมูลจาก numpy เป็นชนิดข้อมูลที่ JSON รองรับ
-        user_categorical = {key: [int(value)] for key, value in user_categorical.items()}  # แปลงเป็น list ของ int
-        user_numeric = user_numeric.tolist()  # แปลง numpy array เป็น list
-
-        # สร้าง payload สำหรับส่งไปยัง API
-        data = {
-            "signature_name": "serving_default",
-            "instances": [
-                {
-                    "district_input": [user_categorical["district_input"]],
-                    "soilgroup_input": [user_categorical["soilgroup_input"]],
-                    "fer_top_input": [user_categorical["fer_top_input"]],
-                    "subdistrict_input": [user_categorical["subdistrict_input"]],
-                    "pH_low_input": [user_categorical["pH_low_input"]],
-                    "rubbertype_input": [user_categorical["rubbertype_input"]],
-                    "province_input": [user_categorical["province_input"]],
-                    "pH_top_input": [user_categorical["pH_top_input"]],
-                    "numeric_input": user_numeric[0]  # ใส่ข้อมูลเชิงตัวเลข
-                }
-            ]
+        user_cat = {
+            "province_input": province_encoder.transform([data.province])[0],
+            "district_input": district_encoder.transform([data.district])[0],
+            "subdistrict_input": subdistrict_encoder.transform([data.subdistrict])[0],
+            "rubbertype_input": rubbertype_encoder.transform([data.rubber_type])[0],
+            "fer_top_input": fer_top_encoder.transform([data.fer_top])[0],
+            "soilgroup_input": soilgroup_encoder.transform([data.soil_group])[0],
+            "pH_top_input": ph_top_encoder.transform([data.ph_top])[0],
+            "pH_low_input": ph_low_encoder.transform([data.ph_low])[0]
         }
 
-        return data
+        return user_cat
     
+    def transform_num_product(self, data: ProductPredictSchema):
+        """
+        แปลงข้อมูลที่ได้ให้อยู่ในรูปแบบของข้อมูลที่เป็นตัวเลข และส่งค่ากลับ
+        """
+        scaler = self.load_encoder('model_product/scaler_numeric.pkl')
 
-
-    @staticmethod
-    async def transform_categorical_suitability(user_input: SuitabilityPredictSchema):
-        # โหลดโมเดลและ encoders
- 
-        encode_path = os.path.join(os.path.dirname(__file__), 'encoder_files/model_classify/labelencoders.pkl')
-
-        with open(encode_path, 'rb') as f:
-            encoders = pickle.load(f)
-        
-        # ตัวแปลง LabelEncoder
-        ph_top_encoder = encoders['pH_top']
-
-        # แปลงข้อมูลหมวดหมู่แล้วคืนค่าในรูปแบบของ user_categorical
-        user_pH_top_encoded = ph_top_encoder.transform([user_input.ph_top])[0]
-
-        return user_pH_top_encoded
-    
-
-    @staticmethod
-    # ฟังก์ชันแปลงข้อมูลเชิงตัวเลข
-    async def transform_numeric_suitability(user_input: SuitabilityPredictSchema):
-
-        user_pH_top_encoded = await PredictService.transform_categorical_suitability(user_input)
-
-        scaler_path = os.path.join(os.path.dirname(__file__), 'encoder_files/model_classify/scaler_numeric.pkl')
-        with open(scaler_path, 'rb') as f:
+        with open(scaler, 'rb') as f:
             scaler = pickle.load(f)
 
+        user_numeric = np.array([[data.rubber_area,
+                                data.rubber_tree_count,
+                                data.rubber_tree_age,
+                                data.rainfall,
+                                data.temperature,
+                                data.rainfall_days,
+                                data.humidity]])
 
-        user_numeric = np.array([[
-                                    user_pH_top_encoded, 
-                                    user_input.rainfall, 
-                                    user_input.temperature,
-                                    user_input.humidity,
-                                    user_input.rainfall_days
-                                ]])
-
-        # ทำการปรับสเกลข้อมูล
         user_numeric_scaler = scaler.transform(user_numeric).tolist()
 
-        # คืนค่าข้อมูลที่ปรับสเกลแล้วเป็น list
         return user_numeric_scaler
-    
-
-    @staticmethod
-    async def data_predict_suitability(user_input: SuitabilityPredictSchema):
-        # แปลงข้อมูลหมวดหมู่
-        user_numeric_scaler = await PredictService.transform_numeric_suitability(user_input)
-
-        # สร้าง payload สำหรับส่งไปยัง API
-        data = {
-            "signature_name": "serving_default",
-            "instances": [{"keras_tensor_28": user_numeric_scaler[0]}]
-            
-        }
-
-        return data

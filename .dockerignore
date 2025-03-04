@@ -1,8 +1,3 @@
-# Python
-__pycache__
-seed_api.egg-info
-*.pyc
-.mypy_cache
-.coverage
-htmlcov
-.venv
+.git*
+**/*.pyc
+.venv/

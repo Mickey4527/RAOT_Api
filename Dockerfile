@@ -1,32 +1,24 @@
-FROM python:3.13.1
+# syntax=docker/dockerfile:1
 
-WORKDIR /app/
+FROM python:3.12.9
 
-ENV PATH="/app/.venv/bin:$PATH"
+WORKDIR /app
 
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates
 
-# Install uv
-COPY --from=ghcr.io/astral-sh/uv:0.5.18 /uv /uvx /bin/
+# Download the latest installer
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
 
-ENV UV_COMPILE_BYTECODE=1
+# Run the installer then remove it
+RUN sh /uv-installer.sh && rm /uv-installer.sh
 
-ENV UV_LINK_MODE=copy
+# Ensure the installed binary is on the `PATH`
+ENV PATH="/root/.local/bin/:$PATH"
 
-# Install dependencies
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project
+COPY . .
 
-ENV PYTHONPATH=/app
+RUN uv sync --frozen
 
-COPY ./scripts /app/scripts
+EXPOSE 3100
 
-COPY ./pyproject.toml ./uv.lock ./alembic.ini /app/
-
-COPY ./app /app/app
-
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync
-
-CMD ["fastapi", "run", "--workers", "4", "app/main.py"]
+CMD ["uv", "run", "main.py"]

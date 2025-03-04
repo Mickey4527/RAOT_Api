@@ -12,6 +12,6 @@ class UserProfile(SQLModel):
     email_secondary: Mapped[str] = mapped_column(String(255), nullable=True)
     firstname: Mapped[str] = mapped_column(String(255), nullable=False)
     lastname: Mapped[str] = mapped_column(String(255), nullable=True)
-    user_id: Mapped[int] = mapped_column(UUID(as_uuid=True), ForeignKey("user_account.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(UUID(as_uuid=True), ForeignKey("UserAccount.id"), nullable=False)
 
     user_account: Mapped["UserAccount"] = relationship(back_populates="profile", single_parent=True)

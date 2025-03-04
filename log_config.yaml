@@ -1,0 +1,45 @@
+version: 1
+disable_existing_loggers: False
+
+formatters:
+  default:
+    format: "%(asctime)s | %(trace_id)s | %(levelname)s | %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+
+filters:
+  trace_id_filter:
+    "()": app.utilities.trace_config.TraceIDFilter
+
+handlers:
+  file:
+    class: logging.FileHandler
+    filename: app/bin/log/uvicorn.log
+    formatter: default
+    filters: [trace_id_filter]
+
+  sql_file:
+    class: logging.FileHandler
+    filename: app/bin/log/sql_info.log
+    formatter: default
+    filters: [trace_id_filter]
+
+root:
+  handlers: [file]
+ 
+
+loggers:
+  uvicorn.error:
+    level: ERROR
+    handlers: [file]
+    propagate: no
+
+  fastapi:
+    level: ERROR
+    handlers: [file]
+    propagate: no
+    
+  sqlalchemy:
+    level: INFO
+    handlers: [sql_file]
+    propagate: no
+

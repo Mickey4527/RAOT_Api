@@ -1,129 +1,149 @@
-from datetime import timedelta
 from typing import Annotated
-from sqlalchemy.exc import SQLAlchemyError
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.schemas import Result, UserLoginSchema, UserCreateSchema, Token, UserDetailSchema, QuerySchema
-from app.services import UserService, TokenService
-from app.api.deps import SessionDep, get_current_user
-from app.config import settings
+from app.schemas.base import QuerySchema
+from app.schemas.result import Result
+from app.schemas.user_schema import UserCreateSchema, UserViewSchema
+from app.services.user_service import UserService
+from app.api.deps import get_trace_id, SessionDep, enforcerDep
+from app.utilities.app_exceptions import APIException, DuplicateResourceException, InvalidAuthorizationException, InvalidOutputException, ResourceNotFoundException, SQLProcessException, ServerProcessException
 
-router = APIRouter(prefix="/u", tags=["user"])
+
+router = APIRouter(prefix="/user", tags=["users"])
+
+result = Result()
 
 @router.get("/", response_model=Result)
-async def get_user_all(session: SessionDep, query: QuerySchema = Depends()):
+async def get_user_all(
+    req: Request,
+    enforcer: enforcerDep,
+    session: SessionDep,
+    query: QuerySchema = Depends(QuerySchema)
+):
     
+    user_service = UserService(session)
+    trace_id = get_trace_id(req)
+
     try:
+        result.trace_id = trace_id
+        users = await user_service.get_users(query = query)
 
-        result = await UserService.get_users(session, query)
+        users = [
+                user_service._jsonify_view_user(user)
+                for user in users
+            ]
         
-        if not result:
-            raise HTTPException(
-                status_code=404,
-                detail=Result.model_validate({
-                    "success": False,
-                    "message": "Users not found"
-                })
-            )
-
-        return {
-            "success": True,
-            "message": "Users retrieved successfully",
-            "data": [UserDetailSchema.model_validate(user) for user in result]
+        result.data = {
+            "users": [UserViewSchema.model_validate(user) for user in users],
+            "total": len(users),
+            "limit": query.limit,
+            "offset": query.offset
         }
-    
-    except SQLAlchemyError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "success": False,
-                "message": str(e)
-            }
+        
+        result.success = True
+
+        return result
+
+    except InvalidOutputException as e:
+        raise APIException(
+            message=e.message,
+            trace_id=trace_id
+        )
+
+    except (ServerProcessException, SQLProcessException) as e:
+        raise APIException(
+            status_code=e.status_code, 
+            message=e.message, 
+            trace_id=trace_id, 
+            data=e.data
         )
     
+@router.post("/add", response_model=Result)
+async def add_user(
+    req: Request,
+    session: SessionDep, 
+    enforcer: enforcerDep, 
+    user_create: UserCreateSchema):
+    
+    user_service = UserService(session)
+    trace_id = get_trace_id(req)
+
+    try:
+
+        await user_service.create_user(enforcer=enforcer, user_create=user_create)
+
+        result.trace_id = trace_id
+        result.success = True
+        
+        return result
+    
+    except (DuplicateResourceException, ResourceNotFoundException) as e:
+        raise APIException(
+            status_code=e.status_code,
+            message=e.message,
+            trace_id=trace_id,
+            data=e.data
+        )
+    except (ServerProcessException, SQLProcessException) as e:
+        raise APIException(
+            status_code=e.status_code,
+            message=e.message,
+            trace_id=trace_id,
+            data=e.data
+        )
+    
+@router.delete("/delete/{user_id}", response_model=Result)
+async def delete_user(
+    req: Request,
+    session: SessionDep,
+    enforcer: enforcerDep,
+    user_id: str):
+    
+    user_service = UserService(session)
+    trace_id = get_trace_id(req)
+
+    try:
+        # await user_service.delete_user(enforcer=enforcer, user_id=user_id)
+
+        result.trace_id = trace_id
+        result.success = True
+
+        return result
+    
+    except (ResourceNotFoundException, InvalidAuthorizationException) as e:
+        raise APIException(
+            status_code=e.status_code,
+            message=e.message,
+            trace_id=trace_id,
+            data=e.data
+        )
+    except (ServerProcessException, SQLProcessException) as e:
+        raise APIException(
+            status_code=e.status_code,
+            message=e.message,
+            trace_id=trace_id,
+            data=e.data
+        )
+    
+
 @router.post("/login/auth")
-async def login_for_access_token(session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-   
+async def login_for_access_token(
+    session: SessionDep,
+    req: Request,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+
+    user_service = UserService(session)
+    trace_id = get_trace_id(req)
+
     try:
-
-        user = await UserService.authenticate_user(session, form_data)
-        
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail={
-                    "success": False,
-                    "message": "Incorrect username or password"
-                }
-            )
-        
-        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = TokenService.create_access_token(
-            subject=user, expires_delta=access_token_expires
-        )
-
-        return Token(access_token=access_token, token_type="bearer", expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-        
-    except SQLAlchemyError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=Result.model_validate({
-                "success": False,
-                "message": str(e)
-            })
+        token = await user_service.login(form_data)
+        return token
+    
+    except (InvalidAuthorizationException, ServerProcessException, SQLProcessException) as e:
+        raise APIException(
+            status_code=e.status_code,
+            trace_id=trace_id,
+            message=e.message
         )
     
-@router.post("/register", response_model=Result)
-async def register_user(session: SessionDep, user_create: UserCreateSchema):
-    try:
-        email_check = await UserService.get_user(session, user_create.email_primary)
-        username_check = await UserService.get_user(session, user_create.username)
-
-        if email_check or username_check:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={
-                    "success": False,
-                    "message": "อีเมลหรือชื่อผู้ใช้งานนี้มีอยู่ในระบบแล้ว"
-                }
-            )
-        
-        await UserService.create_user(session, user_create)
-        
-        return {
-            "success": True,
-            "message": "User created successfully",
-        }
-    
-    except SQLAlchemyError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "success": False,
-                "message": str(e)
-            }
-        )
-    
-# @router.get("/create", response_model=Result)
-# async def create_user(session: SessionDep):
-#     try:
-#         user = await UserService.create_user(session)
-
-#         return Result.model_validate({
-#             "success": True,
-#             "message": "User created successfully",
-#             "data": user
-#         })
-    
-#     except Exception as e:
-#         return raise_http_exception(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             message=str(e)
-#         )
-    
-    
-@router.get("/me", dependencies=[Depends(get_current_user)])
-async def read_users_me():
-    return "Hello, "
-

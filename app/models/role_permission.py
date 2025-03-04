@@ -1,19 +1,16 @@
 import uuid
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import SQLModel
 
 class RolePermission(SQLModel):
-    __tablename__ = "role_permission"
+    __tablename__ = "RolePermission"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    resource_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("resource.id"), nullable=False)
-    role_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("role.id"), nullable=False)
-    permission_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("permission.id"), nullable=False)
-    
+    role_id: Mapped[int] = mapped_column(Integer, ForeignKey("Role.id", ondelete="CASCADE"), primary_key=True)
+    permission_id: Mapped[int] = mapped_column(Integer, ForeignKey("Permission.id", ondelete="CASCADE"), primary_key=True)
 
-    role: Mapped["Role"] = relationship("Role", back_populates="role_permission")
-    permission: Mapped["Permission"] = relationship("Permission", back_populates="role_permission")
-    resource: Mapped["Resource"] = relationship("Resource", back_populates="role_permission")
+    __table_args__ = (
+        UniqueConstraint("role_id", "permission_id", name="uq_role_permission"),
+    )

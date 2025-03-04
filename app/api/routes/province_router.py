@@ -1,129 +1,109 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.exc import SQLAlchemyError
+from fastapi import APIRouter, Depends, Request
 
-from app.api.deps import get_current_user, SessionDep
-from app.schemas import Result, ProvinceDetailSchema, ProvinceSchema, QueryGeographySchema
-from app.services import ProvinceService
+from app.schemas.geo_schema import ProvinceCreateSchema, ProvinceDetailSchema, ProvinceSchema, QueryGeoSchema
+from app.schemas import Result
+from app.services.province_service import ProvinceService
+from app.api.deps import get_trace_id, SessionDep
+from app.utilities.app_exceptions import APIException, DuplicateResourceException, ResourceNotFoundException, SQLProcessException, ServerProcessException
+
 
 router = APIRouter(prefix="/province", tags=["province"])
 
-@router.get("/", response_model=Result)
-async def get_provinces(session: SessionDep, query: QueryGeographySchema = Depends(QueryGeographySchema)):
+result = Result()
+
+@router.post("/", response_model=Result)
+async def create_province(
+    req: Request,
+    session: SessionDep, 
+    data_create: ProvinceCreateSchema
+):
+    province_service = ProvinceService(session)
+    trace_id = get_trace_id(req)
+
     try:
-        result = await ProvinceService.get_provinces(session, query)
-        
-        if not result:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={
-                    "success": False,
-                    "message": "Provinces not found"
-                }
-            )
-        
-        if query.detail and query.code:
-            return {
-                "success": True,
-                "message": "Provinces retrieved successfully",
-                "data": ProvinceDetailSchema.model_validate(result)
-            }
-        
-        return {
-            "success": True,
-            "message": "Provinces retrieved successfully",
-            "data": [ProvinceSchema.model_validate(province) for province in result]
-        }
+        result.trace_id = trace_id
+        create_result = await province_service.create_province(data_create)
     
-    except SQLAlchemyError as e:
-        return HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "success": False,
-                "message": str(e)
-            }
+        result.data = ProvinceCreateSchema.model_validate(create_result)
+        result.success = True
+
+        return result
+
+    except DuplicateResourceException as e:
+        raise APIException(
+            status_code=e.status_code,
+            message=e.message,
+            trace_id=trace_id
+        )
+    except (SQLProcessException, ServerProcessException) as e:
+        raise APIException(
+            status_code=e.status_code,
+            message=e.message,
+            trace_id=trace_id,
+            data=e.data
         )
 
-@router.post("/", response_model=Result, dependencies=[Depends(get_current_user)])
-async def create_province(session: SessionDep, data_create: ProvinceSchema):
-    try:
-        result = await ProvinceService.create_province(session, data_create)
-
-        if not result:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=Result.model_validate({
-                    "success": False,
-                    "message": "Province already exists"
-                })
-            )
-        
-        return Result.model_validate({
-            "success": True,
-            "message": "Province created successfully",
-            "data": ProvinceSchema.model_validate(result)
-        })
-
-    except SQLAlchemyError as e:
-
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=Result.model_validate({
-                "success": False,
-                "message": str(e)
-            })
-        )
-
-@router.put("/{code}", response_model=Result, dependencies=[Depends(get_current_user)])
-async def update_province(session: SessionDep, province: ProvinceSchema, code: int):
-    try:
-
-        result = await ProvinceService.update_province(session, province, code)
-        
-        if not result:
-            return Result.model_validate({
-                "success": False,
-                "message": "Province not found"
-            })
-        
-        return Result.model_validate({
-            "success": True,
-            "message": "Province updated successfully"
-        })
+@router.put("/{code}", response_model=Result)
+async def update_province(
+    req:Request,
+    session: SessionDep, 
+    province: ProvinceCreateSchema, 
+    code: int
+):
     
-    except SQLAlchemyError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=Result.model_validate({
-                "success": False,
-                "message": str(e)
-            })
-        )
-
-
-@router.delete("/{code}", response_model=Result, dependencies=[Depends(get_current_user)])
-async def delete_province(session: SessionDep, code: int):
-    try:
-        result = await ProvinceService.delete_province(session, code)
-
-        if not result:
-            raise HTTPException(
-                status_code=404,
-                detail=Result.model_validate({
-                    "success": False,
-                    "message": "Province not found"
-                })
-            )
-        
-        return Result.model_validate({
-            "success": True,
-            "message": "Province deleted successfully"
-        })
+    province_service = ProvinceService(session)
+    trace_id = get_trace_id(req)
     
-    except SQLAlchemyError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=Result.model_validate({
-                "success": False,
-                "message": str(e)
-            })
+    try:
+        result.trace_id = trace_id
+        province_updated = await province_service.update_province(province, code)
+
+        result.success = True
+        result.data = ProvinceCreateSchema.model_validate(province_updated)
+        
+        return result
+    
+    except ResourceNotFoundException as e:
+        raise APIException(
+            status_code=e.status_code,
+            message=e.message,
+            trace_id=trace_id
+        )
+    except (SQLProcessException, ServerProcessException) as e:
+        raise APIException(
+            status_code=e.status_code,
+            message=e.message,
+            trace_id=trace_id,
+            data=e.data
+        )
+    
+@router.delete("/{code}", response_model=Result)
+async def delete_province(
+    req: Request,
+    session: SessionDep,
+    code: int
+):
+    
+    province_service = ProvinceService(session)
+    trace_id = get_trace_id(req)
+    
+    try:
+        result.trace_id = trace_id
+        delete_result = await province_service.delete_province(code)
+        
+        result.success = delete_result
+        return result
+    
+    except ResourceNotFoundException as e:
+        raise APIException(
+            status_code=e.status_code,
+            message=e.message,
+            trace_id=trace_id
+        )
+    except (SQLProcessException, ServerProcessException) as e:
+        raise APIException(
+            status_code=e.status_code,
+            message=e.message,
+            trace_id=trace_id,
+            data=e.data
         )

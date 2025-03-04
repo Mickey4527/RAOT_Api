@@ -14,4 +14,4 @@ htmlcov
 # Environments python
 .venv/
 env/
-src/services/predict_models/
+app/logging/*

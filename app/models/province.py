@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String, ForeignKey
+from sqlalchemy import Index, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship, mapped_column, Mapped
 from typing import List
 
@@ -11,6 +11,12 @@ class Province(SQLModel):
     name_th: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     name_en: Mapped[str] = mapped_column(String(255), nullable=True, unique=True)
     geography_id: Mapped[int] = mapped_column(Integer, ForeignKey("Geography.code"), nullable=False)
+
+    # Indexes
+    __table_args__ = (
+        Index("idx_province_name_th", "name_th"),
+        Index("idx_province_name_en", "name_en"),
+    )
 
     # Relationships
     geography: Mapped["Geography"] = relationship("Geography", back_populates="provinces") # type: ignore

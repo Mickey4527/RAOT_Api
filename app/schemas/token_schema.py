@@ -1,12 +1,9 @@
-from app.schemas.base import BaseSchema
+from app.schemas.base import Base
 
-class Token(BaseSchema):
+class TokenSchema(Base):
     access_token: str
-    refresh_token: str | None = None
     token_type: str
     expires_in: int
-    refresh_expires_in: int | None = None
 
-
-class TokenData(BaseSchema):
+class TokenData(Base):
     username: str | None = None
