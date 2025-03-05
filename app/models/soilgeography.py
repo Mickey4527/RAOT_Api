@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, Float, ForeignKey
+from sqlalchemy import Integer, ForeignKey, String
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from typing import List
 
@@ -11,9 +11,9 @@ class SoilGeography(SQLModel):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     subdistrict_id: Mapped[int] = mapped_column(Integer, ForeignKey("SubDistrict.code"), nullable=False)
     soil_type_id: Mapped[int] = mapped_column(Integer, ForeignKey("SoilType.id"), nullable=False)
-    fertility_top: Mapped[float] = mapped_column(Float, nullable=True)
-    ph_top: Mapped[float] = mapped_column(Float, nullable=True)
-    ph_low: Mapped[float] = mapped_column(Float, nullable=True)
+    fertility_top: Mapped[str] = mapped_column(String(50), nullable=True)
+    ph_top: Mapped[str] = mapped_column(String(50), nullable=True)
+    ph_low: Mapped[str] = mapped_column(String(50), nullable=True)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # Relationships

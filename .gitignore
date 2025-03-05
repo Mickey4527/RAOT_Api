@@ -19,3 +19,4 @@ app/bin/
 
 app/bin/log/sql_info.log
 app/bin/log/uvicorn.log
+app/core/csv_files/RubberFarm.csv

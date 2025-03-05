@@ -1,5 +1,5 @@
 from typing import Optional
-from sqlalchemy import Column, Integer, Float, ForeignKey
+from sqlalchemy import Column, Integer, Float, ForeignKey, String
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from app.models.base import SQLModel
@@ -16,6 +16,9 @@ class RubberFarm(SQLModel):
     rubber_tree_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     rubber_tree_age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     dry_rubber_content: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    document_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    citizen_id: Mapped[Optional[str]] = mapped_column(String(14), nullable=True)
+
 
     # Relationships
     soil: Mapped["SoilGeography"] = relationship("SoilGeography", back_populates="rubber_farms")
