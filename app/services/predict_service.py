@@ -92,7 +92,7 @@ class PredictService:
             predicted_class_index = int(np.argmax(response))
 
 
-            class_labels = [1, 2, 0]
+            class_labels = [0, 1, 2]
             predicted_class_label = class_labels[predicted_class_index]
 
             predicted_result = {

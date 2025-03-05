@@ -15,5 +15,7 @@ htmlcov
 # Environments python
 .venv/
 env/
-app/bin/log/*
+app/bin/
 
+app/bin/log/sql_info.log
+app/bin/log/uvicorn.log
