@@ -1,11 +1,13 @@
 import logging
-from sqlalchemy import String, cast, desc
+from sqlalchemy import String, cast, desc, distinct
 from sqlalchemy.sql import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError, CompileError, IntegrityError
 from sqlalchemy.orm import joinedload
 
 from app.models import Province, District
+from app.models.rubberfarm import RubberFarm
+from app.models.subdistrict import SubDistrict
 from app.schemas import QueryGeoSchema, ProvinceCreateSchema
 from app.utilities.app_exceptions import DuplicateResourceException, ResourceNotFoundException, SQLProcessException, ServerProcessException
 from app.I18n.load_laguage import get_lang_content
@@ -246,3 +248,76 @@ class ProvinceService:
         province.geography_id = data.geography_id
 
         return province
+    
+    def _filter_districts_with_rubber_farms(self, province):
+        """Filter districts and subdistricts that have rubber farms"""
+        
+        filtered_districts = []
+        for district in province.districts:
+            filtered_subdistricts = [
+                sub for sub in district.sub_districts
+                if any(farm.subdistrict_id == sub.code for farm in sub.rubber_farms)
+            ]
+            if filtered_subdistricts:
+                district.sub_districts = filtered_subdistricts
+                filtered_districts.append(district)
+        return filtered_districts
+
+    async def get_provinces_with_rubber_farms(self, query: QueryGeoSchema):
+        """
+        Get provinces with rubber farms and their districts/subdistricts if detailed view is requested
+        
+        Args:
+            query: QueryGeoSchema - Query parameters for filtering and language selection
+        
+        Returns:
+            List[Province]: List of provinces with rubber farms and optional district details
+        """
+        try:
+            stmt = (
+                select(Province)
+                .distinct()
+                .join(District, District.province_id == Province.code)
+                .join(SubDistrict, SubDistrict.district_id == District.code)
+                .join(RubberFarm, RubberFarm.subdistrict_id == SubDistrict.code)
+                .options(
+                    joinedload(Province.districts)
+                    .joinedload(District.sub_districts)
+                    .joinedload(SubDistrict.rubber_farms)
+                )
+            )
+
+            if query.code:
+                stmt = stmt.where(Province.code == query.code)
+
+            result = await self.session.execute(stmt)
+            provinces = result.unique().scalars().all()
+
+            if not provinces:
+                raise ResourceNotFoundException(message=self.t.get("NotFound"))
+
+            if query.detail:
+                for province in provinces:
+                    province.districts = self._filter_districts_with_rubber_farms(province)
+
+            provinces = self._apply_names(provinces, query)
+            if query.detail:
+                provinces = self._apply_district_details(provinces, query)
+
+            return provinces
+
+        except ResourceNotFoundException as e:
+            logger.warning("No provinces with rubber farms found")
+            raise e
+        except SQLAlchemyError as e:
+            logger.error(f"Database error: {str(e)}")
+            raise SQLProcessException(
+                event=e,
+                message=self.t.get("SQLServerQueryError")
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}")
+            raise ServerProcessException(
+                message=self.t.get("InternalServerError")
+            )
+

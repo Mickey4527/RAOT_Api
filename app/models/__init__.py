@@ -9,11 +9,11 @@ from app.models.permission import Permission
 from app.models.role_permission import RolePermission
 from app.models.geography import Geography
 from app.models.role import Role
-from app.models.rubber_farm import RubberFarm
-from app.models.soil_geography import SoilGeography
-from app.models.weather_geography import WeatherGeography
-from app.models.rubber_type import RubberType
-from app.models.soil_type import SoilType
+from app.models.rubberfarm import RubberFarm
+from app.models.soilgeography import SoilGeography
+from app.models.weathergeography import WeatherGeography
+from app.models.rubbertype import RubberType
+from app.models.soiltype import SoilType
 from app.models.casbin_rule import CasbinRule
 from app.models.module import Module
 

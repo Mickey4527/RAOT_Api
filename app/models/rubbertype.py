@@ -9,8 +9,7 @@ class RubberType(SQLModel):
     __tablename__ = "RubberType"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name_th: Mapped[str] = mapped_column(String, nullable=False)
-    name_en: Mapped[str] = mapped_column(String, nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=True)
 
     # relationship

@@ -11,6 +11,41 @@ router = APIRouter(prefix="/province", tags=["province"])
 
 result = Result()
 
+@router.get("/rubber-farm", response_model=Result)
+async def get_provinces_with_rubber_farms(
+    req: Request,
+    session: SessionDep,
+    query: QueryGeoSchema = Depends(QueryGeoSchema)
+):
+    province_service = ProvinceService(session)
+    trace_id = get_trace_id(req)
+    
+    try:
+        result.trace_id = trace_id
+        provinces = await province_service.get_provinces_with_rubber_farms(query)
+
+        if query.detail and query.code:
+            result.data = [ProvinceDetailSchema.model_validate(province) for province in provinces]
+        else:
+            result.data = [ProvinceSchema.model_validate(province) for province in provinces]
+        
+        result.success = True
+
+        return result
+    
+    except (ResourceNotFoundException) as e:
+        raise APIException(
+            status_code=e.status_code,
+            message=e.message,
+            trace_id=trace_id
+        )
+    # except (SQLProcessException, ServerProcessException) as e:
+    #     raise APIException(
+    #         status_code=e.status_code,
+    #         message=e.message,
+    #         trace_id=trace_id
+    #     )
+    
 @router.post("/", response_model=Result)
 async def create_province(
     req: Request,
