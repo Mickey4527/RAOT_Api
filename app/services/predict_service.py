@@ -190,12 +190,12 @@ class PredictService:
 
         return user_numeric
     
-    def evaluate_suitability(self, param_name: str, value: float) -> dict:
+    def evaluate_suitability(self, param_name: str, value) -> dict:
         """
         ประเมินความเหมาะสมของค่าตัวแปรตามเกณฑ์ที่กำหนด
         Args:
             param_name: ชื่อตัวแปรที่ต้องการประเมิน
-            value: ค่าที่ต้องการประเมิน
+            value: ค่าที่ต้องการประเมิน (can be number or string)
         Returns:
             dict: ผลการประเมินความเหมาะสม (2: เหมาะสม, 1: เหมาะสมปานกลาง, 0: ไม่เหมาะสม)
         """
@@ -203,12 +203,31 @@ class PredictService:
         if not param:
             return {"suitability": 0, "message": "ไม่พบข้อมูลเกณฑ์การประเมิน"}
 
-        if param_name == "ph_top":
+        # Special handling for ph_top which can be ranges like "4.5-5.0"
+        if param_name == "ph_top" and isinstance(value, str):
             return self._evaluate_ph_top(value, param)
         elif "ranges" in param:
-            return self._evaluate_with_ranges(value, param)
+            # For numeric parameters with range definitions
+            try:
+                numeric_value = float(value)
+                return self._evaluate_with_ranges(numeric_value, param)
+            except ValueError:
+                logger.error(f"Invalid numeric value for {param_name}: {value}")
+                return {
+                    "suitability": 0,
+                    "message": f"ค่า {param_name} ({value}) ไม่ถูกต้อง ต้องเป็นตัวเลข"
+                }
         else:
-            return self._evaluate_simple_param(value, param, param_name)
+            # For simple parameters with min/max values
+            try:
+                numeric_value = float(value)
+                return self._evaluate_simple_param(numeric_value, param, param_name)
+            except ValueError:
+                logger.error(f"Invalid numeric value for {param_name}: {value}")
+                return {
+                    "suitability": 0,
+                    "message": f"ค่า {param_name} ({value}) ไม่ถูกต้อง ต้องเป็นตัวเลข"
+                }
 
     def _get_param_config(self, param_name: str) -> dict:
         """Returns the configuration for the specified parameter."""
@@ -288,44 +307,99 @@ class PredictService:
 
     def _evaluate_ph_top(self, value, param: dict) -> dict:
         """Evaluates pH top values against defined ranges."""
-        value_float = self._convert_to_float(value)
+        # For pH top, we need to check if the exact string matches any of the ranges
+        # rather than converting to float and checking numerical ranges
         
-        # Check suitable ranges
-        for suitable_range in param["suitables"]:
-            if self._is_in_range(value_float, suitable_range):
-                return {
-                    "suitability": 2,
-                    "message": param["messages"]["suitable"].format(value=value)
-                }
+        # If value is already a suitable range, it's suitable
+        if value in param["suitables"]:
+            return {
+                "suitability": 2,
+                "message": param["messages"]["suitable"].format(value=value)
+            }
         
-        # Check moderate ranges
-        for moderate_range in param["moderate"]:
-            if self._is_in_range(value_float, moderate_range):
-                return {
-                    "suitability": 1,
-                    "message": param["messages"]["moderate"].format(
-                        value=value,
-                        suitable=" หรือ ".join(param["suitables"])
-                    )
-                }
+        # If value is a moderate range, it's moderately suitable
+        if value in param["moderate"]:
+            return {
+                "suitability": 1,
+                "message": param["messages"]["moderate"].format(
+                    value=value,
+                    suitable=" หรือ ".join(param["suitables"])
+                )
+            }
         
-        # If neither suitable nor moderate
-        return {
-            "suitability": 0,
-            "message": param["messages"]["not_suitable"].format(
-                value=value,
-                suitable=" หรือ ".join(param["suitables"])
-            )
-        }
+        # If value is in not_suitable list, it's not suitable
+        if value in param["not_suitable"]:
+            return {
+                "suitability": 0,
+                "message": param["messages"]["not_suitable"].format(
+                    value=value,
+                    suitable=" หรือ ".join(param["suitables"])
+                )
+            }
+        
+        # If value is a number or unknown range, try to evaluate it numerically
+        try:
+            value_float = self._convert_to_float(value)
+            
+            # Check against suitable ranges
+            for suitable_range in param["suitables"]:
+                if self._is_in_range(value_float, suitable_range):
+                    return {
+                        "suitability": 2,
+                        "message": param["messages"]["suitable"].format(value=value)
+                    }
+            
+            # Check against moderate ranges
+            for moderate_range in param["moderate"]:
+                if self._is_in_range(value_float, moderate_range):
+                    return {
+                        "suitability": 1,
+                        "message": param["messages"]["moderate"].format(
+                            value=value,
+                            suitable=" หรือ ".join(param["suitables"])
+                        )
+                    }
+            
+            # If neither suitable nor moderate
+            return {
+                "suitability": 0,
+                "message": param["messages"]["not_suitable"].format(
+                    value=value,
+                    suitable=" หรือ ".join(param["suitables"])
+                )
+            }
+        except ValueError:
+            # If we can't convert to float, treat as not suitable
+            logger.error(f"Invalid pH value format: {value}")
+            return {
+                "suitability": 0,
+                "message": f"ค่า pH ดิน ({value}) ไม่ถูกต้อง"
+            }
 
     def _convert_to_float(self, value) -> float:
         """Converts string values (including those with < or >) to float."""
         if isinstance(value, str):
+            # Handle range values differently - extract first number for comparison
+            if "-" in value and not value.startswith("<") and not value.startswith(">"):
+                try:
+                    # Return the midpoint of the range for comparison
+                    min_val, max_val = map(float, value.split("-"))
+                    return (min_val + max_val) / 2
+                except ValueError:
+                    # If can't parse the range, log and return a default
+                    logger.warning(f"Could not parse range value: {value}")
+                    return 0.0
+            
+            # Handle < and > values
             if value.startswith('<'):
                 return float(value[1:]) - 0.1
             elif value.startswith('>'):
                 return float(value[1:]) + 0.1
+            
+            # Regular numeric string
             return float(value)
+        
+        # Already a numeric value
         return float(value)
 
     def _is_in_range(self, value_float: float, range_str: str) -> bool:
