@@ -76,35 +76,46 @@ class PredictService:
         """
         บริการทำนายความเหมาะสมของพืชที่ต้องการปลูก
         """
+        # try:
+            # Evaluate each parameter
+        evaluations = {
+                "temperature": self.evaluate_suitability("temperature", data.temperature),
+                "humidity": self.evaluate_suitability("humidity", data.humidity),
+                "rainfall": self.evaluate_suitability("rainfall", data.rainfall),
+                "rainfall_days": self.evaluate_suitability("rainfall_days", data.rainfall_days),
+                "slope": self.evaluate_suitability("slope", data.slope),
+                "ph_top": self.evaluate_suitability("ph_top", data.ph_top)
+            }
 
-        try:
+            # Continue with your existing ML prediction logic
+        numeric_scaler = self.transform_num_suitable(data)
 
-            numeric_scaler = self.transform_num_suitable(data)
-
-            payload = {
+        payload = {
                 "signature_name": "serving_default",
                 "instances": [{"keras_tensor": numeric_scaler[0]}]
             }
 
-            response = self.get_url_predict(url='/v1/models/model_suitability/versions/3:predict', payload=payload)
+        response = self.get_url_predict(url='/v1/models/model_suitability/versions/3:predict', payload=payload)
 
-            response = response['predictions'][0]
-            predicted_class_index = int(np.argmax(response))
+        response = response['predictions'][0]
+        predicted_class_index = int(np.argmax(response))
 
 
-            class_labels = [0, 1, 2]
-            predicted_class_label = class_labels[predicted_class_index]
+        class_labels = [0, 1, 2]
+        predicted_class_label = class_labels[predicted_class_index]
 
-            predicted_result = {
+        predicted_result = {
                     "suitability": predicted_class_label
                 }
 
-            return predicted_result
-            
-        except Exception as e:
-            logger.error("Unknown error: %s", e)
-            raise ServerProcessException(message="เกิดข้อผิดพลาดที่ไม่รู้จัก")
+            # Add evaluations to the response
+        predicted_result["evaluations"] = evaluations
+        print(predicted_result)
+        return predicted_result
 
+        # except Exception as e:
+        #     logger.error("Unknown error: %s", e)
+        #     raise ServerProcessException(message="เกิดข้อผิดพลาดที่ไม่รู้จัก")
 
     
     def transform_cat_suitable(self, data: SuitablePredictSchema):
@@ -178,3 +189,227 @@ class PredictService:
                                 data.humidity]])
 
         return user_numeric
+    
+    def evaluate_suitability(self, param_name: str, value: float) -> dict:
+        """
+        ประเมินความเหมาะสมของค่าตัวแปรตามเกณฑ์ที่กำหนด
+        Args:
+            param_name: ชื่อตัวแปรที่ต้องการประเมิน
+            value: ค่าที่ต้องการประเมิน
+        Returns:
+            dict: ผลการประเมินความเหมาะสม (2: เหมาะสม, 1: เหมาะสมปานกลาง, 0: ไม่เหมาะสม)
+        """
+        param = self._get_param_config(param_name)
+        if not param:
+            return {"suitability": 0, "message": "ไม่พบข้อมูลเกณฑ์การประเมิน"}
+
+        if param_name == "ph_top":
+            return self._evaluate_ph_top(value, param)
+        elif "ranges" in param:
+            return self._evaluate_with_ranges(value, param)
+        else:
+            return self._evaluate_simple_param(value, param, param_name)
+
+    def _get_param_config(self, param_name: str) -> dict:
+        """Returns the configuration for the specified parameter."""
+        weather_params = {
+            "ph_top": {
+                "suitables": ["4.5-5.0", "4.5-5.5", "4.5-6.0", "5.0-5.5"],
+                "moderate": ["5.0-6.5", "5.5-6.5"],
+                "not_suitable": ["<4.0", "5.5-7.0", "5.5-8.0", "6.0-7.0", "6.0-8.0"],
+                "messages": {
+                    "not_suitable": "ค่า pH ดินเฉลี่ย {value} ไม่เหมาะสม ควรมีค่า pH ดินระหว่าง {suitable}",
+                    "moderate": "ค่า pH ดินเฉลี่ย {value} เหมาะสมปานกลาง ค่าที่เหมาะสมควรอยู่ระหว่าง {suitable}",
+                    "suitable": "ค่า pH ดินเฉลี่ย {value} อยู่ในเกณฑ์ที่เหมาะสม"
+                }
+            },
+            "temperature": {
+                "ranges": {
+                    "suitable": [{"min": 24, "max": 27}],
+                    "moderate": [{"min": 20, "max": 24}, {"min": 27, "max": 35}],
+                    "not_suitable": [{"max": 20}, {"min": 35}]
+                },
+                "messages": {
+                    "not_suitable": "อุณหภูมิเฉลี่ย {value} °C ไม่เหมาะสม ควรอยู่ระหว่าง 24-27 °C",
+                    "moderate": "อุณหภูมิเฉลี่ย {value} °C เหมาะสมปานกลาง ค่าที่เหมาะสมควรอยู่ระหว่าง 24-27 °C",
+                    "suitable": "อุณหภูมิเฉลี่ย {value} °C อยู่ในเกณฑ์ที่เหมาะสม"
+                }
+            },
+            "humidity": {
+                "ranges": {
+                    "suitable": [{"min": 65, "max": 80}],
+                    "moderate": [{"min": 50, "max": 65}, {"min": 80, "max": 90}],
+                    "not_suitable": [{"max": 50}, {"min": 90}]
+                },
+                "messages": {
+                    "not_suitable": "ความชื้นสัมพัทธ์เฉลี่ย {value} % ไม่เหมาะสม ควรอยู่ระหว่าง 65-80 %",
+                    "moderate": "ความชื้นสัมพัทธ์เฉลี่ย {value} % เหมาะสมปานกลาง ค่าที่เหมาะสมควรอยู่ระหว่าง 65-80 %",
+                    "suitable": "ความชื้นสัมพัทธ์เฉลี่ย {value} % อยู่ในเกณฑ์ที่เหมาะสม"
+                }
+            },
+            "rainfall": {
+                "ranges": {
+                    "suitable": [{"min": 1350, "max": 2500}],
+                    "moderate": [{"min": 1000, "max": 1350}, {"min": 2500, "max": 3000}],
+                    "not_suitable": [{"max": 1000}, {"min": 3000}]
+                },
+                "messages": {
+                    "not_suitable": "ปริมาณน้ำฝนเฉลี่ย {value} มม. ไม่เหมาะสม ควรอยู่ระหว่าง 1350-2500 มม.",
+                    "moderate": "ปริมาณน้ำฝนเฉลี่ย {value} มม. เหมาะสมปานกลาง ค่าที่เหมาะสมควรอยู่ระหว่าง 1350-2500 มม.",
+                    "suitable": "ปริมาณน้ำฝนเฉลี่ย {value} มม. อยู่ในเกณฑ์ที่เหมาะสม"
+                }
+            },
+            "rainfall_days": {
+                "ranges": {
+                    "suitable": [{"min": 120, "max": 200}],
+                    "moderate": [{"min": 100, "max": 120}, {"min": 200, "max": 250}],
+                    "not_suitable": [{"max": 100}, {"min": 250}]
+                },
+                "messages": {
+                    "not_suitable": "จำนวนวันฝนตกเฉลี่ย {value} วัน ไม่เหมาะสม ควรอยู่ระหว่าง 120-200 วัน",
+                    "moderate": "จำนวนวันฝนตกเฉลี่ย {value} วัน เหมาะสมปานกลาง ค่าที่เหมาะสมควรอยู่ระหว่าง 120-200 วัน",
+                    "suitable": "จำนวนวันฝนตกเฉลี่ย {value} วัน อยู่ในเกณฑ์ที่เหมาะสม"
+                }
+            },
+            "slope": {
+                "ranges": {
+                    "suitable": [{"min": 15, "max": 16}],
+                    "moderate": [{"min": 0, "max": 15}, {"min": 16, "max": 45}],
+                    "not_suitable": [{"min": 45}]
+                },
+                "messages": {
+                    "not_suitable": "ความลาดชันเฉลี่ย {value} องศา ไม่เหมาะสม ควรอยู่ระหว่าง 15-16 องศา",
+                    "moderate": "ความลาดชันเฉลี่ย {value} องศา เหมาะสมปานกลาง ค่าที่เหมาะสมควรอยู่ระหว่าง 15-16 องศา",
+                    "suitable": "ความลาดชันเฉลี่ย {value} องศา อยู่ในเกณฑ์ที่เหมาะสม"
+                }
+            }
+        }
+        return weather_params.get(param_name)
+
+    def _evaluate_ph_top(self, value, param: dict) -> dict:
+        """Evaluates pH top values against defined ranges."""
+        value_float = self._convert_to_float(value)
+        
+        # Check suitable ranges
+        for suitable_range in param["suitables"]:
+            if self._is_in_range(value_float, suitable_range):
+                return {
+                    "suitability": 2,
+                    "message": param["messages"]["suitable"].format(value=value)
+                }
+        
+        # Check moderate ranges
+        for moderate_range in param["moderate"]:
+            if self._is_in_range(value_float, moderate_range):
+                return {
+                    "suitability": 1,
+                    "message": param["messages"]["moderate"].format(
+                        value=value,
+                        suitable=" หรือ ".join(param["suitables"])
+                    )
+                }
+        
+        # If neither suitable nor moderate
+        return {
+            "suitability": 0,
+            "message": param["messages"]["not_suitable"].format(
+                value=value,
+                suitable=" หรือ ".join(param["suitables"])
+            )
+        }
+
+    def _convert_to_float(self, value) -> float:
+        """Converts string values (including those with < or >) to float."""
+        if isinstance(value, str):
+            if value.startswith('<'):
+                return float(value[1:]) - 0.1
+            elif value.startswith('>'):
+                return float(value[1:]) + 0.1
+            return float(value)
+        return float(value)
+
+    def _is_in_range(self, value_float: float, range_str: str) -> bool:
+        """Checks if a value is within a specified range."""
+        try:
+            if range_str.startswith("<"):
+                max_val = float(range_str[1:])
+                return value_float < max_val
+            elif range_str.startswith(">"):
+                min_val = float(range_str[1:])
+                return value_float > min_val
+            else:
+                min_val, max_val = map(float, range_str.split("-"))
+                return min_val <= value_float <= max_val
+        except ValueError as e:
+            logger.error(f"Invalid range format '{range_str}': {str(e)}")
+            return False
+
+    def _evaluate_with_ranges(self, value, param: dict) -> dict:
+        """Evaluates values against ranges in the param dictionary."""
+        value_float = float(value)
+        
+        # Check suitable ranges
+        for range_obj in param["ranges"]["suitable"]:
+            min_val = range_obj.get("min", float("-inf"))
+            max_val = range_obj.get("max", float("inf"))
+            if min_val <= value_float <= max_val:
+                return {
+                    "suitability": 2,
+                    "message": param["messages"]["suitable"].format(value=value)
+                }
+        
+        # Check moderate ranges
+        for range_obj in param["ranges"]["moderate"]:
+            min_val = range_obj.get("min", float("-inf"))
+            max_val = range_obj.get("max", float("inf"))
+            if min_val <= value_float <= max_val:
+                return {
+                    "suitability": 1,
+                    "message": param["messages"]["moderate"].format(value=value)
+                }
+        
+        # If neither suitable nor moderate, it's not suitable
+        return {
+            "suitability": 0,
+            "message": param["messages"]["not_suitable"].format(value=value)
+        }
+
+    def _evaluate_simple_param(self, value, param: dict, param_name: str) -> dict:
+        """Evaluates parameters with simple min/max values."""
+        if "suitable" not in param or "min" not in param["suitable"] or "max" not in param["suitable"]:
+            logger.error(f"Parameter structure for {param_name} is incorrect")
+            return {
+                "suitability": 0, 
+                "message": f"ค่า {param_name} ({value}) ไม่สามารถประเมินความเหมาะสมได้"
+            }
+        
+        value_float = float(value)
+        
+        # Check suitable range
+        if param["suitable"]["min"] <= value_float <= param["suitable"]["max"]:
+            return {
+                "suitability": 2,
+                "message": param["messages"]["suitable"].format(value=value)
+            }
+        
+        # Check moderate range if it exists
+        if "moderate" in param and "min" in param["moderate"] and "max" in param["moderate"]:
+            if param["moderate"]["min"] <= value_float <= param["moderate"]["max"]:
+                return {
+                    "suitability": 1,
+                    "message": param["messages"]["moderate"].format(
+                        value=value,
+                        min=param["suitable"]["min"],
+                        max=param["suitable"]["max"]
+                    )
+                }
+        
+        # If neither suitable nor moderate
+        return {
+            "suitability": 0,
+            "message": param["messages"]["not_suitable"].format(
+                value=value,
+                min=param["suitable"]["min"],
+                max=param["suitable"]["max"]
+            )
+        }
