@@ -274,49 +274,92 @@ class ProvinceService:
             List[Province]: List of provinces with rubber farms and optional district details
         """
         try:
-            stmt = (
-                select(Province)
-                .distinct()
+            # First, get just the provinces that have rubber farms without loading all related data
+            # This uses a subquery approach instead of eager loading everything
+            province_ids_stmt = (
+                select(distinct(Province.code))
                 .join(District, District.province_id == Province.code)
                 .join(SubDistrict, SubDistrict.district_id == District.code)
                 .join(RubberFarm, RubberFarm.subdistrict_id == SubDistrict.code)
-                .options(
+            )
+            
+            if query.code:
+                province_ids_stmt = province_ids_stmt.where(Province.code == query.code)
+                
+            # Execute just to get province IDs - much more efficient
+            province_ids_result = await self.session.execute(province_ids_stmt)
+            province_ids = [row[0] for row in province_ids_result.all()]
+            
+            if not province_ids:
+                raise ResourceNotFoundException(message=self.t.get("NotFound"))
+            
+            # Now get the actual provinces
+            provinces_stmt = (
+                select(Province)
+                .where(Province.code.in_(province_ids))
+            )
+            
+            # Only load detailed district data if requested
+            if query.detail:
+                # Use selective loading to avoid loading all farms
+                provinces_stmt = provinces_stmt.options(
                     joinedload(Province.districts)
                     .joinedload(District.sub_districts)
-                    .joinedload(SubDistrict.rubber_farms)
                 )
-            )
-
-            if query.code:
-                stmt = stmt.where(Province.code == query.code)
-
-            result = await self.session.execute(stmt)
-            provinces = result.unique().scalars().all()
-
-            if not provinces:
-                raise ResourceNotFoundException(message=self.t.get("NotFound"))
-
+            
+            provinces_result = await self.session.execute(provinces_stmt)
+            provinces = provinces_result.unique().scalars().all()
+            
+            # If detail is requested, we need to filter districts/subdistricts with rubber farms
             if query.detail:
                 for province in provinces:
-                    province.districts = self._filter_districts_with_rubber_farms(province)
-
+                    # For each province, find districts with rubber farms
+                    district_ids_stmt = (
+                        select(distinct(District.code))
+                        .join(SubDistrict, SubDistrict.district_id == District.code)
+                        .join(RubberFarm, RubberFarm.subdistrict_id == SubDistrict.code)
+                        .where(District.province_id == province.code)
+                    )
+                    
+                    district_ids_result = await self.session.execute(district_ids_stmt)
+                    district_ids = [row[0] for row in district_ids_result.all()]
+                    
+                    # Filter districts that have rubber farms
+                    province.districts = [d for d in province.districts if d.code in district_ids]
+                    
+                    # For each district, find subdistricts with rubber farms
+                    for district in province.districts:
+                        subdistrict_ids_stmt = (
+                            select(distinct(SubDistrict.code))
+                            .join(RubberFarm, RubberFarm.subdistrict_id == SubDistrict.code)
+                            .where(SubDistrict.district_id == district.code)
+                        )
+                        
+                        subdistrict_ids_result = await self.session.execute(subdistrict_ids_stmt)
+                        subdistrict_ids = [row[0] for row in subdistrict_ids_result.all()]
+                        
+                        # Filter subdistricts that have rubber farms
+                        district.sub_districts = [sd for sd in district.sub_districts 
+                                                 if sd.code in subdistrict_ids]
+            
+            # Apply names according to language selection
             provinces = self._apply_names(provinces, query)
             if query.detail:
                 provinces = self._apply_district_details(provinces, query)
-
+            
             return provinces
 
         except ResourceNotFoundException as e:
             logger.warning("No provinces with rubber farms found")
             raise e
         except SQLAlchemyError as e:
-            logger.error(f"Database error: {str(e)}")
+            logger.error(f"Database error: {str(e)}", exc_info=True)
             raise SQLProcessException(
                 event=e,
                 message=self.t.get("SQLServerQueryError")
             )
         except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}")
+            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
             raise ServerProcessException(
                 message=self.t.get("InternalServerError")
             )
