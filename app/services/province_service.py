@@ -275,7 +275,6 @@ class ProvinceService:
         """
         try:
             # First, get just the provinces that have rubber farms without loading all related data
-            # This uses a subquery approach instead of eager loading everything
             province_ids_stmt = (
                 select(distinct(Province.code))
                 .join(District, District.province_id == Province.code)
@@ -286,66 +285,74 @@ class ProvinceService:
             if query.code:
                 province_ids_stmt = province_ids_stmt.where(Province.code == query.code)
                 
-            # Execute just to get province IDs - much more efficient
+            # Execute just to get province IDs
             province_ids_result = await self.session.execute(province_ids_stmt)
             province_ids = [row[0] for row in province_ids_result.all()]
             
             if not province_ids:
                 raise ResourceNotFoundException(message=self.t.get("NotFound"))
             
-            # Now get the actual provinces
-            provinces_stmt = (
-                select(Province)
-                .where(Province.code.in_(province_ids))
-            )
-            
-            # Only load detailed district data if requested
+            # Pre-fetch all the data we'll need to avoid lazy loading
             if query.detail:
-                # Use selective loading to avoid loading all farms
-                provinces_stmt = provinces_stmt.options(
-                    joinedload(Province.districts)
-                    .joinedload(District.sub_districts)
+                # Get provinces with eager loading of districts and subdistricts
+                # This avoids lazy loading which causes the MissingGreenlet error
+                provinces_stmt = (
+                    select(Province)
+                    .options(
+                        joinedload(Province.districts).joinedload(District.sub_districts)
+                    )
+                    .where(Province.code.in_(province_ids))
                 )
-            
+            else:
+                provinces_stmt = select(Province).where(Province.code.in_(province_ids))
+                
+            # Execute the statement to get all the data at once
             provinces_result = await self.session.execute(provinces_stmt)
             provinces = provinces_result.unique().scalars().all()
             
-            # If detail is requested, we need to filter districts/subdistricts with rubber farms
+            # If detail is requested, filter the pre-loaded data
             if query.detail:
+                # Collect districts and subdistricts with rubber farms to filter against
+                district_ids_stmt = (
+                    select(distinct(District.code), District.province_id)
+                    .join(SubDistrict, SubDistrict.district_id == District.code)
+                    .join(RubberFarm, RubberFarm.subdistrict_id == SubDistrict.code)
+                    .where(District.province_id.in_(province_ids))
+                )
+                district_result = await self.session.execute(district_ids_stmt)
+                district_map = {row[0]: row[1] for row in district_result.all()}
+                
+                subdistrict_ids_stmt = (
+                    select(distinct(SubDistrict.code), SubDistrict.district_id)
+                    .join(RubberFarm, RubberFarm.subdistrict_id == SubDistrict.code)
+                    .where(SubDistrict.district_id.in_(list(district_map.keys())))
+                )
+                subdistrict_result = await self.session.execute(subdistrict_ids_stmt)
+                subdistrict_map = {row[0]: row[1] for row in subdistrict_result.all()}
+                
+                # Filter in Python instead of making more DB calls
                 for province in provinces:
-                    # For each province, find districts with rubber farms
-                    district_ids_stmt = (
-                        select(distinct(District.code))
-                        .join(SubDistrict, SubDistrict.district_id == District.code)
-                        .join(RubberFarm, RubberFarm.subdistrict_id == SubDistrict.code)
-                        .where(District.province_id == province.code)
-                    )
+                    # Keep only districts with rubber farms
+                    province.districts = [
+                        d for d in province.districts 
+                        if d.code in district_map and district_map[d.code] == province.code
+                    ]
                     
-                    district_ids_result = await self.session.execute(district_ids_stmt)
-                    district_ids = [row[0] for row in district_ids_result.all()]
-                    
-                    # Filter districts that have rubber farms
-                    province.districts = [d for d in province.districts if d.code in district_ids]
-                    
-                    # For each district, find subdistricts with rubber farms
+                    # For each district, keep only subdistricts with rubber farms
                     for district in province.districts:
-                        subdistrict_ids_stmt = (
-                            select(distinct(SubDistrict.code))
-                            .join(RubberFarm, RubberFarm.subdistrict_id == SubDistrict.code)
-                            .where(SubDistrict.district_id == district.code)
-                        )
-                        
-                        subdistrict_ids_result = await self.session.execute(subdistrict_ids_stmt)
-                        subdistrict_ids = [row[0] for row in subdistrict_ids_result.all()]
-                        
-                        # Filter subdistricts that have rubber farms
-                        district.sub_districts = [sd for sd in district.sub_districts 
-                                                 if sd.code in subdistrict_ids]
+                        district.sub_districts = [
+                            sd for sd in district.sub_districts 
+                            if sd.code in subdistrict_map and subdistrict_map[sd.code] == district.code
+                        ]
             
             # Apply names according to language selection
             provinces = self._apply_names(provinces, query)
             if query.detail:
                 provinces = self._apply_district_details(provinces, query)
+            
+            # Detach the objects from the session to avoid unexpected DB hits
+            for province in provinces:
+                self.session.expunge(province)
             
             return provinces
 
